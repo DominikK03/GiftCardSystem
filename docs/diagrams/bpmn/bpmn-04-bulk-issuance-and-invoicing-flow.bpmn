@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" id="Defs_BPMN_04" targetNamespace="https://giftcard.local/bpmn" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI">
+  <bpmn:process id="Process_BPMN_04_BulkIssuanceAndInvoicing" name="Bulk Gift Card Issuance and Invoicing" isExecutable="true">
+    <bpmn:laneSet id="LaneSet_04">
+      <bpmn:lane id="Lane_Admin04" name="Admin User">
+        <bpmn:flowNodeRef>Start_OpenIssueForm</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_ProvideTenantCurrencyLines</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_AdminController04" name="GiftCardAdminController">
+        <bpmn:flowNodeRef>Task_ValidateIssueInput</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_IssueInputValid</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_ShowIssueErrors</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_IterateLinesAndDispatchCreate</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_BuildInvoiceItems</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_DispatchGenerateInvoice</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_GiftCardWorker04" name="GiftCard Create Handler">
+        <bpmn:flowNodeRef>Task_CreateGiftCards</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_PersistGiftCardEvents</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_TenantWorker04" name="Tenant Invoice Handler">
+        <bpmn:flowNodeRef>Task_LoadTenantAndGenerateInvoicePdf</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_StoreInvoiceDocument</bpmn:flowNodeRef>
+      </bpmn:lane>
+    </bpmn:laneSet>
+    <bpmn:startEvent id="Start_OpenIssueForm" name="Open /admin/giftcards/issue"/>
+    <bpmn:task id="Task_ProvideTenantCurrencyLines" name="Set tenant, currency, VAT, quantity x amount lines"/>
+    <bpmn:task id="Task_ValidateIssueInput" name="Validate tenant and line items"/>
+    <bpmn:exclusiveGateway id="Gateway_IssueInputValid" name="Issue data valid?"/>
+    <bpmn:task id="Task_ShowIssueErrors" name="Render form with errors"/>
+    <bpmn:task id="Task_IterateLinesAndDispatchCreate" name="Dispatch CreateCommand for each card"/>
+    <bpmn:task id="Task_CreateGiftCards" name="Create GiftCard aggregates"/>
+    <bpmn:task id="Task_PersistGiftCardEvents" name="Append GiftCardCreated events and project read model"/>
+    <bpmn:task id="Task_BuildInvoiceItems" name="Build invoice item list from lines"/>
+    <bpmn:task id="Task_DispatchGenerateInvoice" name="Dispatch GenerateInvoiceCommand"/>
+    <bpmn:task id="Task_LoadTenantAndGenerateInvoicePdf" name="Load tenant and generate invoice PDF"/>
+    <bpmn:task id="Task_StoreInvoiceDocument" name="Store invoice PDF and metadata"/>
+    <bpmn:endEvent id="End_BulkIssueSuccess" name="Cards issued and invoice generated"/>
+    <bpmn:endEvent id="End_BulkIssueRejected" name="Issuance rejected"/>
+    <bpmn:sequenceFlow id="I01" sourceRef="Start_OpenIssueForm" targetRef="Task_ProvideTenantCurrencyLines"/>
+    <bpmn:sequenceFlow id="I02" sourceRef="Task_ProvideTenantCurrencyLines" targetRef="Task_ValidateIssueInput"/>
+    <bpmn:sequenceFlow id="I03" sourceRef="Task_ValidateIssueInput" targetRef="Gateway_IssueInputValid"/>
+    <bpmn:sequenceFlow id="I04" sourceRef="Gateway_IssueInputValid" targetRef="Task_ShowIssueErrors" name="No"/>
+    <bpmn:sequenceFlow id="I05" sourceRef="Task_ShowIssueErrors" targetRef="End_BulkIssueRejected"/>
+    <bpmn:sequenceFlow id="I06" sourceRef="Gateway_IssueInputValid" targetRef="Task_IterateLinesAndDispatchCreate" name="Yes"/>
+    <bpmn:sequenceFlow id="I07" sourceRef="Task_IterateLinesAndDispatchCreate" targetRef="Task_CreateGiftCards"/>
+    <bpmn:sequenceFlow id="I08" sourceRef="Task_CreateGiftCards" targetRef="Task_PersistGiftCardEvents"/>
+    <bpmn:sequenceFlow id="I09" sourceRef="Task_PersistGiftCardEvents" targetRef="Task_BuildInvoiceItems"/>
+    <bpmn:sequenceFlow id="I10" sourceRef="Task_BuildInvoiceItems" targetRef="Task_DispatchGenerateInvoice"/>
+    <bpmn:sequenceFlow id="I11" sourceRef="Task_DispatchGenerateInvoice" targetRef="Task_LoadTenantAndGenerateInvoicePdf"/>
+    <bpmn:sequenceFlow id="I12" sourceRef="Task_LoadTenantAndGenerateInvoicePdf" targetRef="Task_StoreInvoiceDocument"/>
+    <bpmn:sequenceFlow id="I13" sourceRef="Task_StoreInvoiceDocument" targetRef="End_BulkIssueSuccess"/>
+  </bpmn:process>
+  <bpmndi:BPMNDiagram xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNDiagram_Process_BPMN_04_BulkIssuanceAndInvoicing">
+    <bpmndi:BPMNPlane id="BPMNPlane_Process_BPMN_04_BulkIssuanceAndInvoicing" bpmnElement="Process_BPMN_04_BulkIssuanceAndInvoicing">
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_Start_OpenIssueForm" bpmnElement="Start_OpenIssueForm">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="120" y="220" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_Task_ProvideTenantCurrencyLines" bpmnElement="Task_ProvideTenantCurrencyLines">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="290" y="220" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_Task_ValidateIssueInput" bpmnElement="Task_ValidateIssueInput">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="460" y="220" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_Gateway_IssueInputValid" bpmnElement="Gateway_IssueInputValid">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="630" y="220" width="50" height="50"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_Task_ShowIssueErrors" bpmnElement="Task_ShowIssueErrors">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="800" y="220" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_Task_IterateLinesAndDispatchCreate" bpmnElement="Task_IterateLinesAndDispatchCreate">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="970" y="220" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_Task_CreateGiftCards" bpmnElement="Task_CreateGiftCards">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="1140" y="220" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_Task_PersistGiftCardEvents" bpmnElement="Task_PersistGiftCardEvents">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="1310" y="220" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_Task_BuildInvoiceItems" bpmnElement="Task_BuildInvoiceItems">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="1480" y="220" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_Task_DispatchGenerateInvoice" bpmnElement="Task_DispatchGenerateInvoice">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="1650" y="220" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_Task_LoadTenantAndGenerateInvoicePdf" bpmnElement="Task_LoadTenantAndGenerateInvoicePdf">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="1820" y="220" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_Task_StoreInvoiceDocument" bpmnElement="Task_StoreInvoiceDocument">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="1990" y="220" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_End_BulkIssueSuccess" bpmnElement="End_BulkIssueSuccess">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="2160" y="220" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_End_BulkIssueRejected" bpmnElement="End_BulkIssueRejected">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="2330" y="220" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_I01" bpmnElement="I01">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="138" y="238"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="350" y="260"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_I02" bpmnElement="I02">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="350" y="260"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="520" y="260"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_I03" bpmnElement="I03">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="520" y="260"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="655" y="245"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_I04" bpmnElement="I04">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="655" y="245"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="860" y="260"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_I05" bpmnElement="I05">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="860" y="260"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="2348" y="238"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_I06" bpmnElement="I06">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="655" y="245"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="1030" y="260"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_I07" bpmnElement="I07">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="1030" y="260"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="1200" y="260"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_I08" bpmnElement="I08">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="1200" y="260"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="1370" y="260"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_I09" bpmnElement="I09">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="1370" y="260"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="1540" y="260"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_I10" bpmnElement="I10">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="1540" y="260"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="1710" y="260"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_I11" bpmnElement="I11">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="1710" y="260"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="1880" y="260"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_I12" bpmnElement="I12">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="1880" y="260"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="2050" y="260"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_I13" bpmnElement="I13">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="2050" y="260"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="2178" y="238"/>
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

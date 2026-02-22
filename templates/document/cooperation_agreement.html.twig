@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'DejaVu Sans', sans-serif;
+            font-size: 11pt;
+            line-height: 1.6;
+            color: #333;
+            padding: 40px;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #333;
+            padding-bottom: 20px;
+        }
+        .header h1 {
+            font-size: 16pt;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        .header .subtitle {
+            font-size: 10pt;
+            color: #666;
+            margin-top: 5px;
+        }
+        .parties {
+            width: 100%;
+            margin-bottom: 30px;
+        }
+        .parties table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .parties td {
+            width: 48%;
+            vertical-align: top;
+            padding: 15px;
+            border: 1px solid #ddd;
+            background: #fafafa;
+        }
+        .party-title {
+            font-size: 10pt;
+            text-transform: uppercase;
+            color: #666;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 5px;
+            font-weight: bold;
+        }
+        .party-info {
+            font-size: 10pt;
+            margin-bottom: 3px;
+        }
+        .section {
+            margin-bottom: 20px;
+        }
+        .section h2 {
+            font-size: 12pt;
+            margin-bottom: 10px;
+            color: #222;
+        }
+        .section p, .section li {
+            font-size: 10pt;
+            text-align: justify;
+        }
+        .section ol {
+            padding-left: 20px;
+        }
+        .section ol li {
+            margin-bottom: 8px;
+        }
+        .signatures {
+            margin-top: 60px;
+        }
+        .signatures table {
+            width: 100%;
+        }
+        .signatures td {
+            width: 45%;
+            text-align: center;
+        }
+        .signature-line {
+            border-top: 1px solid #333;
+            margin-top: 60px;
+            padding-top: 5px;
+            font-size: 9pt;
+            color: #666;
+        }
+        .date-place {
+            text-align: right;
+            margin-bottom: 20px;
+            font-size: 10pt;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <h1>{{ 'document.agreement.title'|trans({}, 'ui') }}</h1>
+    <div class="subtitle">{{ 'document.agreement.subtitle'|trans({}, 'ui') }}</div>
+</div>
+
+<div class="date-place">
+    {{ 'document.agreement.date_place'|trans({'%date%': date|date('d.m.Y')}, 'ui') }}
+</div>
+
+<div class="parties">
+    <table>
+        <tr>
+            <td>
+                <div class="party-title">{{ 'document.agreement.operator'|trans({}, 'ui') }}</div>
+                <p class="party-info"><strong>GiftCard System Sp. z o.o.</strong></p>
+                <p class="party-info">ul. Przykładowa 1</p>
+                <p class="party-info">00-001 Warszawa</p>
+                <p class="party-info">NIP: 1234567890</p>
+                <p class="party-info">{{ 'document.agreement.represented_by'|trans({}, 'ui') }} Jan Kowalski</p>
+            </td>
+            <td>
+                <div class="party-title">{{ 'document.agreement.partner'|trans({}, 'ui') }}</div>
+                <p class="party-info"><strong>{{ tenant.name }}</strong></p>
+                <p class="party-info">{{ tenant.address.street }}</p>
+                <p class="party-info">{{ tenant.address.postalCode }} {{ tenant.address.city }}</p>
+                <p class="party-info">NIP: {{ tenant.nip }}</p>
+                <p class="party-info">{{ 'document.agreement.represented_by'|trans({}, 'ui') }} {{ tenant.representativeName.fullName }}</p>
+            </td>
+        </tr>
+    </table>
+</div>
+
+<div class="section">
+    <h2>{{ 'document.agreement.section1_title'|trans({}, 'ui')|raw }}</h2>
+    <ol>
+        <li>{{ 'document.agreement.section1_item1'|trans({}, 'ui') }}</li>
+        <li>{{ 'document.agreement.section1_item2'|trans({}, 'ui') }}</li>
+        <li>{{ 'document.agreement.section1_item3'|trans({}, 'ui') }}</li>
+    </ol>
+</div>
+
+<div class="section">
+    <h2>{{ 'document.agreement.section2_title'|trans({}, 'ui')|raw }}</h2>
+    <ol>
+        <li>{{ 'document.agreement.section2_item1'|trans({}, 'ui') }}</li>
+        <li>{{ 'document.agreement.section2_item2'|trans({}, 'ui') }}</li>
+        <li>{{ 'document.agreement.section2_item3'|trans({}, 'ui') }}</li>
+    </ol>
+</div>
+
+<div class="section">
+    <h2>{{ 'document.agreement.section3_title'|trans({}, 'ui')|raw }}</h2>
+    <ol>
+        <li>{{ 'document.agreement.section3_item1'|trans({}, 'ui') }}</li>
+        <li>{{ 'document.agreement.section3_item2'|trans({}, 'ui') }}</li>
+        <li>{{ 'document.agreement.section3_item3'|trans({}, 'ui') }}</li>
+    </ol>
+</div>
+
+<div class="section">
+    <h2>{{ 'document.agreement.section4_title'|trans({}, 'ui')|raw }}</h2>
+    <ol>
+        <li>{{ 'document.agreement.section4_item1'|trans({}, 'ui') }}</li>
+        <li>{{ 'document.agreement.section4_item2'|trans({}, 'ui') }}</li>
+        <li>{{ 'document.agreement.section4_item3'|trans({}, 'ui') }}</li>
+    </ol>
+</div>
+
+<div class="section">
+    <h2>{{ 'document.agreement.section5_title'|trans({}, 'ui')|raw }}</h2>
+    <ol>
+        <li>{{ 'document.agreement.section5_item1'|trans({}, 'ui') }}</li>
+        <li>{{ 'document.agreement.section5_item2'|trans({}, 'ui') }}</li>
+        <li>{{ 'document.agreement.section5_item3'|trans({}, 'ui') }}</li>
+    </ol>
+</div>
+
+<div class="section">
+    <h2>{{ 'document.agreement.section6_title'|trans({}, 'ui')|raw }}</h2>
+    <ol>
+        <li>{{ 'document.agreement.section6_item1'|trans({}, 'ui') }}</li>
+        <li>{{ 'document.agreement.section6_item2'|trans({}, 'ui') }}</li>
+        <li>{{ 'document.agreement.section6_item3'|trans({}, 'ui') }}</li>
+    </ol>
+</div>
+
+<div class="signatures">
+    <table>
+        <tr>
+            <td>
+                <div class="signature-line">{{ 'document.agreement.signature_operator'|trans({}, 'ui') }}</div>
+            </td>
+            <td>
+                <div class="signature-line">{{ 'document.agreement.signature_partner'|trans({}, 'ui') }}</div>
+            </td>
+        </tr>
+    </table>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ 'login.title'|trans({}, 'ui') }}</title>
+    {{ encore_entry_link_tags('admin') }}
+</head>
+<body class="auth-page">
+    <div class="login-wrapper">
+        <div class="login-brand">
+            <div class="brand-icon">
+                <i class="bi bi-gift-fill"></i>
+            </div>
+            <h1>{{ 'login.heading'|trans({}, 'ui') }}</h1>
+            <p>{{ 'layout.admin_panel'|trans({}, 'ui') }}</p>
+        </div>
+
+        <div class="login-card">
+            {% if error %}
+                <div class="alert alert-danger d-flex align-items-center mb-4">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                    {{ error.messageKey|trans(error.messageData, 'security') }}
+                </div>
+            {% endif %}
+
+            <form method="post">
+                <div class="mb-3">
+                    <label for="username" class="form-label">{{ 'login.email_label'|trans({}, 'ui') }}</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="bi bi-envelope"></i></span>
+                        <input type="email" id="username" name="_username" value="{{ last_username }}"
+                               class="form-control" placeholder="admin@example.com" required autofocus>
+                    </div>
+                </div>
+                <div class="mb-4">
+                    <label for="password" class="form-label">{{ 'login.password_label'|trans({}, 'ui') }}</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="bi bi-lock"></i></span>
+                        <input type="password" id="password" name="_password"
+                               class="form-control" placeholder="{{ 'login.password_placeholder'|trans({}, 'ui') }}" required>
+                    </div>
+                </div>
+                <input type="hidden" name="_csrf_token" value="{{ csrf_token('authenticate') }}">
+                <button type="submit" class="btn btn-primary btn-login w-100">
+                    <i class="bi bi-box-arrow-in-right me-2"></i>{{ 'login.sign_in'|trans({}, 'ui') }}
+                </button>
+            </form>
+        </div>
+    </div>
+{{ encore_entry_script_tags('admin') }}
+</body>
+</html>

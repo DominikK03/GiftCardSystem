@@ -1,0 +1,164 @@
+erDiagram
+
+    %% ─────────────────────────────────────────────
+    %% TENANT (korzeń agregatu multi-tenancy)
+    %% ─────────────────────────────────────────────
+    tenants {
+        varchar(36)  id                           PK  "UUID"
+        varchar(255) name                             "Nazwa firmy"
+        varchar(255) email                        UK  "E-mail"
+        varchar(10)  nip                              "NIP"
+        varchar(255) address_street
+        varchar(100) address_city
+        varchar(20)  address_postal_code
+        varchar(100) address_country
+        varchar(30)  phone_number
+        varchar(100) representative_name_first_name
+        varchar(100) representative_name_last_name
+        varchar(64)  api_key                      UK  "Klucz API"
+        varchar(255) api_secret                       "Sekret API"
+        varchar(255) status                           "ACTIVE|SUSPENDED|CANCELLED"
+        datetime     created_at
+        datetime     suspended_at                     "NULL jeśli aktywny"
+        datetime     cancelled_at                     "NULL jeśli aktywny"
+        varchar(255) allowed_redirect_domain          "OAuth redirect"
+    }
+
+    %% ─────────────────────────────────────────────
+    %% USERS (panel administracyjny)
+    %% ─────────────────────────────────────────────
+    users {
+        varchar(36)  id                 PK  "UUID"
+        varchar(255) email              UK
+        varchar(255) password_hash
+        varchar(20)  role                   "OWNER|ADMIN|STAFF"
+        boolean      is_active
+        datetime     created_at
+        datetime     deactivated_at         "NULL jeśli aktywny"
+        varchar(100) profile_first_name     "NULL jeśli nieuzupełnione"
+        varchar(100) profile_last_name      "NULL jeśli nieuzupełnione"
+    }
+
+    %% ─────────────────────────────────────────────
+    %% GIFT CARDS – READ MODEL (projekcja CQRS)
+    %% ─────────────────────────────────────────────
+    gift_cards_read {
+        varchar(36)  id                  PK  "GiftCard UUID"
+        varchar(36)  tenant_id           FK  "→ tenants.id"
+        int          balance_amount          "Saldo (grosze)"
+        varchar(3)   balance_currency        "PLN | EUR | …"
+        int          initial_amount          "Kwota początkowa"
+        varchar(3)   initial_currency
+        varchar(20)  status                  "INACTIVE|ACTIVE|EXPIRED|DEPLETED|CANCELLED|SUSPENDED"
+        timestamptz  expires_at              "Data ważności"
+        timestamptz  created_at
+        timestamptz  activated_at            "NULL → nie aktywowana"
+        timestamptz  suspended_at            "NULL → nie zawieszona"
+        timestamptz  cancelled_at            "NULL → nie anulowana"
+        timestamptz  expired_at              "NULL → nie wygasła"
+        timestamptz  depleted_at             "NULL → nie wyczerpana"
+        int          suspension_duration     "Łączny czas zawieszenia [s]"
+        varchar(12)  card_number         UK  "Numer karty fizycznej"
+        varchar(8)   pin                     "PIN karty"
+        timestamptz  updated_at
+    }
+
+    %% ─────────────────────────────────────────────
+    %% EVENT STORE (Broadway – Event Sourcing)
+    %% ─────────────────────────────────────────────
+    events {
+        serial       id          PK
+        uuid         uuid            "UUID agregatu (GiftCard)"
+        int          playhead        "Nr sekwencyjny eventu"
+        varchar(255) type            "Nazwa klasy eventu"
+        json         payload         "Dane eventu"
+        json         metadata        "tenant_id, itp."
+        timestamp    recorded_on     "Data zapisu"
+    }
+
+    %% ─────────────────────────────────────────────
+    %% AKTYWACJA KART
+    %% ─────────────────────────────────────────────
+    activation_requests {
+        varchar(36)   id                PK  "UUID"
+        varchar(12)   card_number           "Numer karty fizycznej"
+        varchar(255)  customer_email
+        varchar(6)    verification_code     "6-cyfrowy kod"
+        boolean       verified
+        varchar(36)   gift_card_id      FK  "→ gift_cards_read.id"
+        varchar(36)   tenant_id         FK  "→ tenants.id"
+        varchar(2048) return_url            "Powrót po aktywacji"
+        varchar(2048) callback_url          "Webhook po wyniku"
+        varchar(30)   status               "pending_verification|verified|completed|expired"
+        datetime      created_at
+        datetime      expires_at            "Ważność żądania (15 min)"
+    }
+
+    card_assignments {
+        varchar(36)  id              PK  "UUID"
+        varchar(36)  gift_card_id    FK  "→ gift_cards_read.id (UNIQUE)"
+        varchar(36)  tenant_id       FK  "→ tenants.id"
+        varchar(255) customer_email
+        datetime     assigned_at
+    }
+
+    my_cards_requests {
+        varchar(36)  id                 PK  "UUID"
+        varchar(255) customer_email
+        varchar(6)   verification_code     "6-cyfrowy kod"
+        boolean      verified
+        varchar(30)  status                "pending_verification|verified|expired"
+        datetime     created_at
+        datetime     expires_at            "Ważność żądania (15 min)"
+    }
+
+    %% ─────────────────────────────────────────────
+    %% DOKUMENTY I WEBHOOKI NAJEMCY
+    %% ─────────────────────────────────────────────
+    tenant_documents {
+        varchar(36)  id            PK  "UUID"
+        varchar(36)  tenant_id     FK  "→ tenants.id"
+        varchar(255) type              "COOPERATION_AGREEMENT|INVOICE|…"
+        varchar(255) filename
+        varchar(255) original_name
+        varchar(50)  mime_type
+        int          size              "Rozmiar pliku [B]"
+        varchar(500) storage_path
+        json         metadata          "Opcjonalne dane (nr faktury itp.)"
+        datetime     created_at
+    }
+
+    tenant_webhooks {
+        int          id          PK  "AUTO INCREMENT"
+        varchar(36)  tenant_id   FK  "→ tenants.id"
+        varchar(500) url             "Endpoint webhooka"
+        json         events          "Subskrybowane typy eventów"
+        boolean      is_active
+        varchar(64)  secret          "HMAC signing secret"
+        datetime     created_at
+    }
+
+    %% ─────────────────────────────────────────────
+    %% KOLEJKA NIEUDANYCH WIADOMOŚCI (Symfony Messenger)
+    %% ─────────────────────────────────────────────
+    messenger_messages {
+        bigserial    id            PK
+        text         body              "Serializowana wiadomość"
+        text         headers
+        varchar(190) queue_name        "Nazwa kolejki"
+        timestamp    created_at
+        timestamp    available_at      "Czas następnej próby"
+        timestamp    delivered_at      "NULL → jeszcze nie dostarczona"
+    }
+
+    %% ─────────────────────────────────────────────
+    %% RELACJE
+    %% ─────────────────────────────────────────────
+    tenants            ||--o{ gift_cards_read      : "posiada karty"
+    tenants            ||--o{ activation_requests  : "inicjuje aktywacje"
+    tenants            ||--o{ card_assignments     : "zarządza przypisaniami"
+    tenants            ||--o{ tenant_documents     : "posiada dokumenty"
+    tenants            ||--o{ tenant_webhooks      : "konfiguruje webhooki"
+
+    gift_cards_read    ||--o{ activation_requests  : "dotyczy karty"
+    gift_cards_read    ||--o| card_assignments      : "jest przypisana"

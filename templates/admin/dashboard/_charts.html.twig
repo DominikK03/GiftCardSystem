@@ -1,0 +1,135 @@
+{# Dashboard: Chart + Recent Activity + Top Tenants #}
+<div class="row g-4 mb-4">
+    {# Status Distribution Donut #}
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-header d-flex align-items-center gap-2">
+                <i class="bi bi-pie-chart-fill" style="color:#8b5cf6;"></i>
+                <strong>{{ 'dashboard.status_distribution'|trans({}, 'ui') }}</strong>
+            </div>
+            <div class="card-body">
+                <div id="chart-status-donut"
+                     data-chart-type="donut"
+                     data-chart-values="{{ {
+                         ('status.active'|trans({}, 'ui')): stats.giftCards.ACTIVE|default(0),
+                         ('status.inactive'|trans({}, 'ui')): stats.giftCards.INACTIVE|default(0),
+                         ('status.expired'|trans({}, 'ui')): stats.giftCards.EXPIRED|default(0),
+                         ('status.depleted'|trans({}, 'ui')): stats.giftCards.DEPLETED|default(0),
+                         ('status.cancelled'|trans({}, 'ui')): stats.giftCards.CANCELLED|default(0),
+                         ('status.suspended'|trans({}, 'ui')): stats.giftCards.SUSPENDED|default(0)
+                     }|json_encode }}"
+                     data-chart-colors="{{ {
+                         ('status.active'|trans({}, 'ui')): '#10b981',
+                         ('status.inactive'|trans({}, 'ui')): '#94a3b8',
+                         ('status.expired'|trans({}, 'ui')): '#eab308',
+                         ('status.depleted'|trans({}, 'ui')): '#ef4444',
+                         ('status.cancelled'|trans({}, 'ui')): '#dc2626',
+                         ('status.suspended'|trans({}, 'ui')): '#f97316'
+                     }|json_encode }}"
+                     style="min-height:350px;"></div>
+            </div>
+        </div>
+    </div>
+
+    {# Recent Activity #}
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-header d-flex align-items-center gap-2">
+                <i class="bi bi-activity" style="color:#3b82f6;"></i>
+                <strong>{{ 'dashboard.recent_activity'|trans({}, 'ui') }}</strong>
+            </div>
+            <div class="card-body p-0">
+                {% if stats.recentActivity|length > 0 %}
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th style="padding-left:1rem;">{{ 'common.id'|trans({}, 'ui') }}</th>
+                                <th>{{ 'common.status'|trans({}, 'ui') }}</th>
+                                <th>{{ 'common.balance'|trans({}, 'ui') }}</th>
+                                <th>{{ 'dashboard.updated'|trans({}, 'ui') }}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% set statusColors = {
+                                'active': '#10b981',
+                                'inactive': '#94a3b8',
+                                'expired': '#f59e0b',
+                                'depleted': '#ef4444',
+                                'cancelled': '#dc2626',
+                                'suspended': '#f97316'
+                            } %}
+                            {% for card in stats.recentActivity %}
+                            <tr>
+                                <td style="padding-left:1rem;">
+                                    <code style="font-size:.8rem;">{{ card.id[:8] }}</code>
+                                </td>
+                                <td>
+                                    <span class="badge" style="background:{{ statusColors[card.status]|default('#6b7280') }};font-size:.7rem;">
+                                        {{ ('status.' ~ card.status)|trans({}, 'ui') }}
+                                    </span>
+                                </td>
+                                <td style="font-size:.85rem;">
+                                    {{ (card.balanceAmount / 100)|number_format(2, ',', ' ') }} {{ card.balanceCurrency }}
+                                </td>
+                                <td style="font-size:.8rem;color:#64748b;">
+                                    {{ card.updatedAt|date('d.m.Y H:i') }}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                    <div class="text-center text-muted py-4">
+                        <i class="bi bi-inbox" style="font-size:1.5rem;"></i>
+                        <p class="mb-0 mt-2" style="font-size:.85rem;">{{ 'dashboard.no_activity_yet'|trans({}, 'ui') }}</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    {# Top Tenants #}
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-header d-flex align-items-center gap-2">
+                <i class="bi bi-trophy-fill" style="color:#f59e0b;"></i>
+                <strong>{{ 'dashboard.top_tenants'|trans({}, 'ui') }}</strong>
+            </div>
+            <div class="card-body p-0">
+                {% if stats.topTenants|length > 0 %}
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th style="padding-left:1rem;">{{ 'dashboard.tenant'|trans({}, 'ui') }}</th>
+                                <th class="text-center">{{ 'dashboard.active_cards'|trans({}, 'ui') }}</th>
+                                <th class="text-end" style="padding-right:1rem;">{{ 'dashboard.total_balance_header'|trans({}, 'ui') }}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for tenant in stats.topTenants %}
+                            <tr>
+                                <td style="padding-left:1rem;font-size:.85rem;">{{ tenant.name }}</td>
+                                <td class="text-center">
+                                    <span class="badge" style="background:#3b82f6;font-size:.75rem;">{{ tenant.cardCount }}</span>
+                                </td>
+                                <td class="text-end" style="padding-right:1rem;font-size:.85rem;">
+                                    {{ (tenant.totalBalance / 100)|number_format(2, ',', ' ') }} {{ tenant.currency }}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                    <div class="text-center text-muted py-4">
+                        <i class="bi bi-building" style="font-size:1.5rem;"></i>
+                        <p class="mb-0 mt-2" style="font-size:.85rem;">{{ 'dashboard.no_active_cards_yet'|trans({}, 'ui') }}</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>

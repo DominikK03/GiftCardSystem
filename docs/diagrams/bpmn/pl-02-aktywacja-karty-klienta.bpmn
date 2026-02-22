@@ -1,0 +1,333 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+                  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+                  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+                  id="Defs_PL02" targetNamespace="https://giftcard.local/bpmn/pl02">
+
+  <bpmn:message id="Msg02_FormData"    name="Dane formularza aktywacji"/>
+  <bpmn:message id="Msg02_EmailCode"   name="E-mail z kodem weryfikacyjnym"/>
+  <bpmn:message id="Msg02_Code"        name="Kod weryfikacyjny od klienta"/>
+  <bpmn:message id="Msg02_Summary"     name="Podsumowanie karty"/>
+  <bpmn:message id="Msg02_Confirm"     name="Potwierdzenie aktywacji"/>
+  <bpmn:message id="Msg02_EmailReq"    name="Zlecenie wysłania e-maila"/>
+  <bpmn:message id="Msg02_EmailSent"   name="E-mail wysłany"/>
+
+  <bpmn:collaboration id="Collab_PL02">
+    <bpmn:participant id="P02_Klient"  name="Klient Końcowy"             processRef="Proc02_Klient"/>
+    <bpmn:participant id="P02_Portal"  name="Portal Aktywacji"           processRef="Proc02_Portal"/>
+    <bpmn:participant id="P02_Poczta"  name="Serwis Poczty Elektronicznej" processRef="Proc02_Poczta"/>
+
+    <bpmn:messageFlow id="MF02_01" sourceRef="T02K_FillForm"  targetRef="S02P_Start"       name="Dane karty i e-mail"/>
+    <bpmn:messageFlow id="MF02_02" sourceRef="T02P_SendEmail" targetRef="S02E_Start"       name="Zlecenie e-mail z kodem"/>
+    <bpmn:messageFlow id="MF02_03" sourceRef="E02E_Done"      targetRef="E02P_EmailSent"   name="E-mail dostarczony"/>
+    <bpmn:messageFlow id="MF02_04" sourceRef="E02E_Done"      targetRef="E02K_WaitEmail"   name="E-mail z kodem"/>
+    <bpmn:messageFlow id="MF02_05" sourceRef="T02K_EnterCode" targetRef="E02P_CodeReceived" name="Kod weryfikacyjny"/>
+    <bpmn:messageFlow id="MF02_06" sourceRef="T02P_ShowSummary" targetRef="E02K_WaitSummary" name="Podsumowanie karty"/>
+    <bpmn:messageFlow id="MF02_07" sourceRef="T02K_Confirm"   targetRef="E02P_Confirm"     name="Potwierdzenie aktywacji"/>
+  </bpmn:collaboration>
+
+  <!-- ═══ KLIENT KOŃCOWY ═══ -->
+  <bpmn:process id="Proc02_Klient" isExecutable="false">
+
+    <bpmn:startEvent id="S02K_Start" name="Otwiera stronę&#10;aktywacji karty">
+      <bpmn:outgoing>F02K_01</bpmn:outgoing>
+    </bpmn:startEvent>
+
+    <bpmn:userTask id="T02K_FillForm" name="Podaje adres e-mail,&#10;numer karty i PIN">
+      <bpmn:incoming>F02K_01</bpmn:incoming>
+      <bpmn:outgoing>F02K_02</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <bpmn:intermediateCatchEvent id="E02K_WaitEmail" name="Odbiera e-mail&#10;z kodem weryfikacyjnym">
+      <bpmn:incoming>F02K_02</bpmn:incoming>
+      <bpmn:outgoing>F02K_03</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="MED02K_Email" messageRef="Msg02_EmailCode"/>
+    </bpmn:intermediateCatchEvent>
+
+    <bpmn:userTask id="T02K_EnterCode" name="Wpisuje kod&#10;weryfikacyjny">
+      <bpmn:incoming>F02K_03</bpmn:incoming>
+      <bpmn:outgoing>F02K_04</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <bpmn:intermediateCatchEvent id="E02K_WaitSummary" name="Przegląda podsumowanie&#10;karty (saldo, ważność)">
+      <bpmn:incoming>F02K_04</bpmn:incoming>
+      <bpmn:outgoing>F02K_05</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="MED02K_Sum" messageRef="Msg02_Summary"/>
+    </bpmn:intermediateCatchEvent>
+
+    <bpmn:userTask id="T02K_Confirm" name="Potwierdza&#10;aktywację karty">
+      <bpmn:incoming>F02K_05</bpmn:incoming>
+      <bpmn:outgoing>F02K_06</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <bpmn:endEvent id="E02K_End" name="Karta aktywowana –&#10;przekierowanie do sklepu">
+      <bpmn:incoming>F02K_06</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:sequenceFlow id="F02K_01" sourceRef="S02K_Start"      targetRef="T02K_FillForm"/>
+    <bpmn:sequenceFlow id="F02K_02" sourceRef="T02K_FillForm"    targetRef="E02K_WaitEmail"/>
+    <bpmn:sequenceFlow id="F02K_03" sourceRef="E02K_WaitEmail"   targetRef="T02K_EnterCode"/>
+    <bpmn:sequenceFlow id="F02K_04" sourceRef="T02K_EnterCode"   targetRef="E02K_WaitSummary"/>
+    <bpmn:sequenceFlow id="F02K_05" sourceRef="E02K_WaitSummary" targetRef="T02K_Confirm"/>
+    <bpmn:sequenceFlow id="F02K_06" sourceRef="T02K_Confirm"     targetRef="E02K_End"/>
+  </bpmn:process>
+
+  <!-- ═══ PORTAL AKTYWACJI ═══ -->
+  <bpmn:process id="Proc02_Portal" isExecutable="false">
+
+    <bpmn:startEvent id="S02P_Start" name="Dane aktywacji&#10;odebrane">
+      <bpmn:outgoing>F02P_01</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="MED02P_Start" messageRef="Msg02_FormData"/>
+    </bpmn:startEvent>
+
+    <bpmn:serviceTask id="T02P_Validate" name="Weryfikuje: format e-mail,&#10;istnienie karty, PIN,&#10;status INACTIVE, adres powrotu">
+      <bpmn:incoming>F02P_01</bpmn:incoming>
+      <bpmn:outgoing>F02P_02</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:exclusiveGateway id="GW02P_Valid" name="Dane&#10;poprawne?">
+      <bpmn:incoming>F02P_02</bpmn:incoming>
+      <bpmn:outgoing>F02P_Err</bpmn:outgoing>
+      <bpmn:outgoing>F02P_OK</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:endEvent id="E02P_ErrVal" name="Błąd walidacji –&#10;formularz z komunikatem">
+      <bpmn:incoming>F02P_Err</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:serviceTask id="T02P_CreateRequest" name="Rejestruje żądanie&#10;aktywacji (ważne 15 minut)">
+      <bpmn:incoming>F02P_OK</bpmn:incoming>
+      <bpmn:outgoing>F02P_03</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:serviceTask id="T02P_GenCode" name="Generuje jednorazowy&#10;kod weryfikacyjny">
+      <bpmn:incoming>F02P_03</bpmn:incoming>
+      <bpmn:outgoing>F02P_04</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:serviceTask id="T02P_SendEmail" name="Zleca wysłanie e-maila&#10;z kodem weryfikacyjnym">
+      <bpmn:incoming>F02P_04</bpmn:incoming>
+      <bpmn:outgoing>F02P_05</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:intermediateCatchEvent id="E02P_EmailSent" name="E-mail&#10;wysłany">
+      <bpmn:incoming>F02P_05</bpmn:incoming>
+      <bpmn:outgoing>F02P_06</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="MED02P_Email" messageRef="Msg02_EmailSent"/>
+    </bpmn:intermediateCatchEvent>
+
+    <!-- Oczekiwanie na kod z timerem 15 minut -->
+    <bpmn:userTask id="T02P_WaitCode" name="Oczekuje na wpisanie&#10;kodu weryfikacyjnego">
+      <bpmn:incoming>F02P_06</bpmn:incoming>
+      <bpmn:outgoing>F02P_07</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <bpmn:boundaryEvent id="E02P_Timer" name="15 minut minęło –&#10;żądanie wygasło"
+                        attachedToRef="T02P_WaitCode" cancelActivity="true">
+      <bpmn:outgoing>F02P_Timeout</bpmn:outgoing>
+      <bpmn:timerEventDefinition id="TED02P_01">
+        <bpmn:timeDuration>PT15M</bpmn:timeDuration>
+      </bpmn:timerEventDefinition>
+    </bpmn:boundaryEvent>
+
+    <bpmn:endEvent id="E02P_ErrTimeout" name="Żądanie wygasło –&#10;strona z komunikatem">
+      <bpmn:incoming>F02P_Timeout</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:intermediateCatchEvent id="E02P_CodeReceived" name="Kod weryfikacyjny&#10;od klienta odebrany">
+      <bpmn:incoming>F02P_07</bpmn:incoming>
+      <bpmn:outgoing>F02P_08</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="MED02P_Code" messageRef="Msg02_Code"/>
+    </bpmn:intermediateCatchEvent>
+
+    <bpmn:serviceTask id="T02P_VerifyCode" name="Sprawdza poprawność&#10;kodu weryfikacyjnego">
+      <bpmn:incoming>F02P_08</bpmn:incoming>
+      <bpmn:outgoing>F02P_09</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:exclusiveGateway id="GW02P_Code" name="Kod&#10;poprawny?">
+      <bpmn:incoming>F02P_09</bpmn:incoming>
+      <bpmn:outgoing>F02P_CodeErr</bpmn:outgoing>
+      <bpmn:outgoing>F02P_CodeOK</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:endEvent id="E02P_ErrCode" name="Błędny kod –&#10;formularz z komunikatem">
+      <bpmn:incoming>F02P_CodeErr</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:serviceTask id="T02P_ShowSummary" name="Wyświetla podsumowanie&#10;karty klientowi">
+      <bpmn:incoming>F02P_CodeOK</bpmn:incoming>
+      <bpmn:outgoing>F02P_10</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:intermediateCatchEvent id="E02P_Confirm" name="Potwierdzenie&#10;aktywacji odebrane">
+      <bpmn:incoming>F02P_10</bpmn:incoming>
+      <bpmn:outgoing>F02P_11</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="MED02P_Conf" messageRef="Msg02_Confirm"/>
+    </bpmn:intermediateCatchEvent>
+
+    <bpmn:serviceTask id="T02P_Activate" name="Aktywuje kartę&#10;i przypisuje do klienta">
+      <bpmn:incoming>F02P_11</bpmn:incoming>
+      <bpmn:outgoing>F02P_12</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:serviceTask id="T02P_Redirect" name="Przekierowuje klienta&#10;pod adres powrotu">
+      <bpmn:incoming>F02P_12</bpmn:incoming>
+      <bpmn:outgoing>F02P_13</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:endEvent id="E02P_End" name="Aktywacja&#10;zakończona">
+      <bpmn:incoming>F02P_13</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:sequenceFlow id="F02P_01"      sourceRef="S02P_Start"         targetRef="T02P_Validate"/>
+    <bpmn:sequenceFlow id="F02P_02"      sourceRef="T02P_Validate"       targetRef="GW02P_Valid"/>
+    <bpmn:sequenceFlow id="F02P_Err"     name="Nie" sourceRef="GW02P_Valid" targetRef="E02P_ErrVal"/>
+    <bpmn:sequenceFlow id="F02P_OK"      name="Tak" sourceRef="GW02P_Valid" targetRef="T02P_CreateRequest"/>
+    <bpmn:sequenceFlow id="F02P_03"      sourceRef="T02P_CreateRequest"  targetRef="T02P_GenCode"/>
+    <bpmn:sequenceFlow id="F02P_04"      sourceRef="T02P_GenCode"        targetRef="T02P_SendEmail"/>
+    <bpmn:sequenceFlow id="F02P_05"      sourceRef="T02P_SendEmail"      targetRef="E02P_EmailSent"/>
+    <bpmn:sequenceFlow id="F02P_06"      sourceRef="E02P_EmailSent"      targetRef="T02P_WaitCode"/>
+    <bpmn:sequenceFlow id="F02P_07"      sourceRef="T02P_WaitCode"       targetRef="E02P_CodeReceived"/>
+    <bpmn:sequenceFlow id="F02P_Timeout" sourceRef="E02P_Timer"          targetRef="E02P_ErrTimeout"/>
+    <bpmn:sequenceFlow id="F02P_08"      sourceRef="E02P_CodeReceived"   targetRef="T02P_VerifyCode"/>
+    <bpmn:sequenceFlow id="F02P_09"      sourceRef="T02P_VerifyCode"     targetRef="GW02P_Code"/>
+    <bpmn:sequenceFlow id="F02P_CodeErr" name="Nie" sourceRef="GW02P_Code" targetRef="E02P_ErrCode"/>
+    <bpmn:sequenceFlow id="F02P_CodeOK"  name="Tak" sourceRef="GW02P_Code" targetRef="T02P_ShowSummary"/>
+    <bpmn:sequenceFlow id="F02P_10"      sourceRef="T02P_ShowSummary"    targetRef="E02P_Confirm"/>
+    <bpmn:sequenceFlow id="F02P_11"      sourceRef="E02P_Confirm"        targetRef="T02P_Activate"/>
+    <bpmn:sequenceFlow id="F02P_12"      sourceRef="T02P_Activate"       targetRef="T02P_Redirect"/>
+    <bpmn:sequenceFlow id="F02P_13"      sourceRef="T02P_Redirect"       targetRef="E02P_End"/>
+  </bpmn:process>
+
+  <!-- ═══ SERWIS POCZTY ELEKTRONICZNEJ ═══ -->
+  <bpmn:process id="Proc02_Poczta" isExecutable="false">
+
+    <bpmn:startEvent id="S02E_Start" name="Zlecenie wysłania&#10;e-maila odebrane">
+      <bpmn:outgoing>F02E_01</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="MED02E_Start" messageRef="Msg02_EmailReq"/>
+    </bpmn:startEvent>
+
+    <bpmn:serviceTask id="T02E_Prepare" name="Przygotowuje treść&#10;e-maila z kodem">
+      <bpmn:incoming>F02E_01</bpmn:incoming>
+      <bpmn:outgoing>F02E_02</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:endEvent id="E02E_Done" name="E-mail z kodem&#10;wysłany">
+      <bpmn:incoming>F02E_02</bpmn:incoming>
+      <bpmn:messageEventDefinition id="MED02E_Done" messageRef="Msg02_EmailSent"/>
+    </bpmn:endEvent>
+
+    <bpmn:sequenceFlow id="F02E_01" sourceRef="S02E_Start"   targetRef="T02E_Prepare"/>
+    <bpmn:sequenceFlow id="F02E_02" sourceRef="T02E_Prepare" targetRef="E02E_Done"/>
+  </bpmn:process>
+
+  <!-- ═══ DIAGRAM INTERCHANGE ═══ -->
+  <bpmndi:BPMNDiagram id="BPMNDiag_PL02">
+    <bpmndi:BPMNPlane id="BPMNPlane_PL02" bpmnElement="Collab_PL02">
+
+      <!-- Pule -->
+      <bpmndi:BPMNShape id="SH_P02_Klient" bpmnElement="P02_Klient" isHorizontal="true">
+        <dc:Bounds x="100" y="20"  width="1500" height="160"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="SH_P02_Portal" bpmnElement="P02_Portal" isHorizontal="true">
+        <dc:Bounds x="100" y="200" width="1500" height="480"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="SH_P02_Poczta" bpmnElement="P02_Poczta" isHorizontal="true">
+        <dc:Bounds x="100" y="700" width="1500" height="140"/>
+      </bpmndi:BPMNShape>
+
+      <!-- Klient (oś y=100) -->
+      <bpmndi:BPMNShape id="SH_S02K_Start"    bpmnElement="S02K_Start">      <dc:Bounds x="162" y="82"  width="36"  height="36"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="SH_T02K_Fill"     bpmnElement="T02K_FillForm">   <dc:Bounds x="248" y="60"  width="150" height="80"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="SH_E02K_Email"    bpmnElement="E02K_WaitEmail">  <dc:Bounds x="558" y="82"  width="36"  height="36"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="SH_T02K_Code"     bpmnElement="T02K_EnterCode">  <dc:Bounds x="644" y="60"  width="130" height="80"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="SH_E02K_Summary"  bpmnElement="E02K_WaitSummary"><dc:Bounds x="834" y="82"  width="36"  height="36"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="SH_T02K_Confirm"  bpmnElement="T02K_Confirm">    <dc:Bounds x="920" y="60"  width="130" height="80"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="SH_E02K_End"      bpmnElement="E02K_End">        <dc:Bounds x="1100" y="82" width="36"  height="36"/></bpmndi:BPMNShape>
+
+      <bpmndi:BPMNEdge id="E_F02K_01" bpmnElement="F02K_01"><di:waypoint x="198" y="100"/><di:waypoint x="248" y="100"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E_F02K_02" bpmnElement="F02K_02"><di:waypoint x="398" y="100"/><di:waypoint x="558" y="100"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E_F02K_03" bpmnElement="F02K_03"><di:waypoint x="594" y="100"/><di:waypoint x="644" y="100"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E_F02K_04" bpmnElement="F02K_04"><di:waypoint x="774" y="100"/><di:waypoint x="834" y="100"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E_F02K_05" bpmnElement="F02K_05"><di:waypoint x="870" y="100"/><di:waypoint x="920" y="100"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E_F02K_06" bpmnElement="F02K_06"><di:waypoint x="1050" y="100"/><di:waypoint x="1100" y="100"/></bpmndi:BPMNEdge>
+
+      <!-- Portal (główna oś y=330, dolna oś y=470) -->
+      <bpmndi:BPMNShape id="SH_S02P_Start"    bpmnElement="S02P_Start">        <dc:Bounds x="162" y="312" width="36"  height="36"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="SH_T02P_Val"      bpmnElement="T02P_Validate">     <dc:Bounds x="248" y="290" width="150" height="80"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="SH_GW02P_Valid"   bpmnElement="GW02P_Valid" isMarkerVisible="true"><dc:Bounds x="448" y="305" width="50"  height="50"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="SH_E02P_ErrVal"   bpmnElement="E02P_ErrVal">       <dc:Bounds x="448" y="410" width="36"  height="36"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="SH_T02P_CreateReq" bpmnElement="T02P_CreateRequest"><dc:Bounds x="548" y="290" width="140" height="80"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="SH_T02P_GenCode"  bpmnElement="T02P_GenCode">      <dc:Bounds x="738" y="290" width="130" height="80"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="SH_T02P_SendMail" bpmnElement="T02P_SendEmail">    <dc:Bounds x="918" y="290" width="140" height="80"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="SH_E02P_EmailSent" bpmnElement="E02P_EmailSent">   <dc:Bounds x="1108" y="312" width="36"  height="36"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="SH_T02P_WaitCode" bpmnElement="T02P_WaitCode">     <dc:Bounds x="1194" y="290" width="140" height="80"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="SH_E02P_Timer"    bpmnElement="E02P_Timer">        <dc:Bounds x="1256" y="352" width="36"  height="36"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="SH_E02P_ErrTimeout" bpmnElement="E02P_ErrTimeout"> <dc:Bounds x="1256" y="440" width="36"  height="36"/></bpmndi:BPMNShape>
+      <!-- dolna oś Portalu y=490 -->
+      <bpmndi:BPMNShape id="SH_E02P_CodeRec"  bpmnElement="E02P_CodeReceived"> <dc:Bounds x="1194" y="472" width="36"  height="36"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="SH_T02P_VerCode"  bpmnElement="T02P_VerifyCode">   <dc:Bounds x="1080" y="450" width="130" height="80"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="SH_GW02P_Code"    bpmnElement="GW02P_Code" isMarkerVisible="true"><dc:Bounds x="940" y="465" width="50"  height="50"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="SH_E02P_ErrCode"  bpmnElement="E02P_ErrCode">      <dc:Bounds x="940" y="560" width="36"  height="36"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="SH_T02P_Summary"  bpmnElement="T02P_ShowSummary">  <dc:Bounds x="810" y="450" width="130" height="80"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="SH_E02P_Confirm"  bpmnElement="E02P_Confirm">      <dc:Bounds x="670" y="472" width="36"  height="36"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="SH_T02P_Activate" bpmnElement="T02P_Activate">     <dc:Bounds x="540" y="450" width="130" height="80"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="SH_T02P_Redirect" bpmnElement="T02P_Redirect">     <dc:Bounds x="380" y="450" width="130" height="80"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="SH_E02P_End"      bpmnElement="E02P_End">          <dc:Bounds x="260" y="472" width="36"  height="36"/></bpmndi:BPMNShape>
+
+      <!-- Portal sekwencje -->
+      <bpmndi:BPMNEdge id="E_F02P_01"      bpmnElement="F02P_01">     <di:waypoint x="198"  y="330"/><di:waypoint x="248"  y="330"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E_F02P_02"      bpmnElement="F02P_02">     <di:waypoint x="398"  y="330"/><di:waypoint x="448"  y="330"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E_F02P_Err"     bpmnElement="F02P_Err">    <di:waypoint x="473"  y="355"/><di:waypoint x="473"  y="410"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E_F02P_OK"      bpmnElement="F02P_OK">     <di:waypoint x="498"  y="330"/><di:waypoint x="548"  y="330"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E_F02P_03"      bpmnElement="F02P_03">     <di:waypoint x="688"  y="330"/><di:waypoint x="738"  y="330"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E_F02P_04"      bpmnElement="F02P_04">     <di:waypoint x="868"  y="330"/><di:waypoint x="918"  y="330"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E_F02P_05"      bpmnElement="F02P_05">     <di:waypoint x="1058" y="330"/><di:waypoint x="1108" y="330"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E_F02P_06"      bpmnElement="F02P_06">     <di:waypoint x="1144" y="330"/><di:waypoint x="1194" y="330"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E_F02P_07"      bpmnElement="F02P_07">     <di:waypoint x="1334" y="330"/><di:waypoint x="1370" y="330"/><di:waypoint x="1370" y="490"/><di:waypoint x="1230" y="490"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E_F02P_Timeout" bpmnElement="F02P_Timeout"><di:waypoint x="1274" y="388"/><di:waypoint x="1274" y="440"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E_F02P_08"      bpmnElement="F02P_08">     <di:waypoint x="1194" y="490"/><di:waypoint x="1210" y="490"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E_F02P_09"      bpmnElement="F02P_09">     <di:waypoint x="1080" y="490"/><di:waypoint x="990"  y="490"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E_F02P_CodeErr" bpmnElement="F02P_CodeErr"><di:waypoint x="965"  y="515"/><di:waypoint x="965"  y="560"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E_F02P_CodeOK"  bpmnElement="F02P_CodeOK"> <di:waypoint x="940"  y="490"/><di:waypoint x="940"  y="490"/><di:waypoint x="810"  y="490"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E_F02P_10"      bpmnElement="F02P_10">     <di:waypoint x="810"  y="490"/><di:waypoint x="706"  y="490"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E_F02P_11"      bpmnElement="F02P_11">     <di:waypoint x="670"  y="490"/><di:waypoint x="670"  y="490"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E_F02P_12"      bpmnElement="F02P_12">     <di:waypoint x="540"  y="490"/><di:waypoint x="510"  y="490"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E_F02P_13"      bpmnElement="F02P_13">     <di:waypoint x="380"  y="490"/><di:waypoint x="296"  y="490"/></bpmndi:BPMNEdge>
+
+      <!-- Poczta (oś y=770) -->
+      <bpmndi:BPMNShape id="SH_S02E_Start" bpmnElement="S02E_Start">   <dc:Bounds x="162" y="752" width="36"  height="36"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="SH_T02E_Prep"  bpmnElement="T02E_Prepare"> <dc:Bounds x="248" y="730" width="140" height="80"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="SH_E02E_Done"  bpmnElement="E02E_Done">    <dc:Bounds x="438" y="752" width="36"  height="36"/></bpmndi:BPMNShape>
+
+      <bpmndi:BPMNEdge id="E_F02E_01" bpmnElement="F02E_01"><di:waypoint x="198" y="770"/><di:waypoint x="248" y="770"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E_F02E_02" bpmnElement="F02E_02"><di:waypoint x="388" y="770"/><di:waypoint x="438" y="770"/></bpmndi:BPMNEdge>
+
+      <!-- Przepływy wiadomości -->
+      <bpmndi:BPMNEdge id="E_MF02_01" bpmnElement="MF02_01">
+        <di:waypoint x="323" y="140"/><di:waypoint x="323" y="200"/><di:waypoint x="180" y="200"/><di:waypoint x="180" y="312"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E_MF02_02" bpmnElement="MF02_02">
+        <di:waypoint x="988" y="370"/><di:waypoint x="988" y="700"/><di:waypoint x="180" y="700"/><di:waypoint x="180" y="752"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E_MF02_03" bpmnElement="MF02_03">
+        <di:waypoint x="456" y="752"/><di:waypoint x="456" y="700"/><di:waypoint x="1126" y="700"/><di:waypoint x="1126" y="348"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E_MF02_04" bpmnElement="MF02_04">
+        <di:waypoint x="456" y="752"/><di:waypoint x="456" y="700"/><di:waypoint x="576" y="700"/><di:waypoint x="576" y="200"/><di:waypoint x="576" y="118"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E_MF02_05" bpmnElement="MF02_05">
+        <di:waypoint x="709" y="140"/><di:waypoint x="709" y="200"/><di:waypoint x="1212" y="200"/><di:waypoint x="1212" y="472"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E_MF02_06" bpmnElement="MF02_06">
+        <di:waypoint x="875" y="450"/><di:waypoint x="875" y="200"/><di:waypoint x="852" y="200"/><di:waypoint x="852" y="118"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E_MF02_07" bpmnElement="MF02_07">
+        <di:waypoint x="985" y="140"/><di:waypoint x="985" y="200"/><di:waypoint x="688" y="200"/><di:waypoint x="688" y="472"/>
+      </bpmndi:BPMNEdge>
+
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

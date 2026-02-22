@@ -1,0 +1,100 @@
+@startuml c4-level3-component
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+
+LAYOUT_WITH_LEGEND()
+LAYOUT_LEFT_RIGHT()
+
+title C4 Component Diagram - Symfony Web Application (Level 3)
+
+Person(tenant, "Tenant", "API client via HMAC-authenticated REST API")
+Person(admin, "Admin User", "Backoffice via EasyAdmin dashboard")
+Person(cron, "Cron Scheduler", "CLI tasks")
+
+ContainerDb(postgres, "PostgreSQL", "PostgreSQL 16", "Events, gift_cards_read, tenants, users, messenger_messages")
+Container(rabbitmq, "RabbitMQ", "RabbitMQ 3", "gift_card_commands (direct), gift_card_events (fanout)")
+ContainerDb(redis, "Redis", "Redis 7", "Nonce store, cache")
+System_Ext(webhookEndpoint, "Tenant Webhook Endpoint", "External HTTP endpoint for event notifications")
+
+Container_Boundary(app, "Symfony Web Application") {
+
+    Boundary(interface_layer, "Interface Layer") {
+        Component(giftCardCtrl, "GiftCardController", "Symfony Controller", "13 endpoints: create, redeem, activate, suspend, reactivate, cancel, expire, adjustBalance, decreaseBalance, list, get, history, health")
+        Component(tenantCtrl, "TenantController", "Symfony Controller", "7 endpoints: create, suspend, reactivate, cancel, regenerateCredentials, get, list")
+        Component(userCtrl, "UserController", "Symfony Controller", "7 endpoints: register, get, list, changeRole, deactivate, activate, changePassword")
+        Component(requestDtos, "Request DTOs", "PHP Classes", "10 request classes with Symfony Validator constraints")
+    }
+
+    Boundary(app_gc, "Application - GiftCard") {
+        Component(gcCmdHandlers, "GiftCard Command Handlers", "AsMessageHandler", "9 handlers: Create, Redeem, Activate, Suspend, Reactivate, Cancel, Expire, AdjustBalance, DecreaseBalance")
+        Component(gcQueryHandlers, "GiftCard Query Handlers", "Handler", "3 handlers: GetGiftCard, GetGiftCards, GetGiftCardHistory")
+        Component(gcProvider, "GiftCardProvider", "Service", "Loads aggregate from event store. Enforces tenant ownership via TenantContext")
+        Component(gcPersister, "GiftCardPersister", "Service", "Saves aggregate via GiftCardRepository (domain port)")
+        Component(gcReadModel, "GiftCardReadModel", "Doctrine Entity", "gift_cards_read table. Denormalized CQRS projection")
+        Component(webhookNotifier, "TenantWebhookNotifier", "AsMessageHandler", "Handles all 10 domain events. Sends HMAC-signed webhooks")
+    }
+
+    Boundary(app_tenant, "Application - Tenant") {
+        Component(tenantCmdHandlers, "Tenant Command Handlers", "AsMessageHandler", "7 handlers: Create, Suspend, Reactivate, Cancel, GenerateInvoice, GenerateAgreement, RegenerateApiCredentials")
+        Component(tenantQueryHandlers, "Tenant Query Handlers", "Handler", "2 handlers: GetTenant, GetTenants")
+        Component(tenantProvPers, "Tenant Provider/Persister", "Service", "TenantProviderInterface + TenantPersisterInterface")
+    }
+
+    Boundary(app_user, "Application - User") {
+        Component(userCmdHandlers, "User Command Handlers", "AsMessageHandler", "5 handlers: RegisterUser, ChangePassword, ChangeUserRole, DeactivateUser, ActivateUser")
+        Component(userQueryHandlers, "User Query Handlers", "Handler", "2 handlers: GetUser, GetUsers")
+        Component(userProvPers, "User Provider/Persister", "Service", "UserProviderInterface + UserPersisterInterface")
+    }
+
+    Boundary(domain_layer, "Domain Layer") {
+        Component(gcAggregate, "GiftCard Aggregate", "Broadway AggregateRoot", "Event-sourced. 10 business methods + 10 apply*() handlers. INACTIVE->ACTIVE->SUSPENDED/EXPIRED/DEPLETED/CANCELLED")
+        Component(domainEvents, "Domain Events", "Readonly Classes", "10 events: Created, Activated, Redeemed, Depleted, Suspended, Reactivated, Cancelled, Expired, BalanceAdjusted, BalanceDecreased")
+        Component(valueObjects, "Value Objects", "PHP Classes", "GiftCardId, Money, TenantId, TenantName, TenantEmail, NIP, ApiKey, ApiSecret, Address, UserId, UserEmail, UserRole")
+        Component(tenantEntity, "Tenant Entity", "Doctrine ORM", "Status: ACTIVE/SUSPENDED/CANCELLED. TenantWebhook child entities")
+        Component(userEntity, "User Entity", "Doctrine ORM", "Roles: OWNER/ADMIN/SUPPORT. RBAC permissions")
+        Component(domainPorts, "Domain Ports", "Interfaces", "GiftCardRepository, TenantRepositoryInterface, TenantQueryRepositoryInterface, UserRepository, TenantDocumentRepositoryInterface")
+    }
+
+    Boundary(infra_layer, "Infrastructure Layer") {
+        Component(broadwayEs, "Broadway Event Sourcing", "Broadway", "GiftCardRepositoryBroadway, TenantAwareEventStore, DBALEventStore, ReflectionSerializer, SimpleEventBus")
+        Component(eventBridge, "DomainEventToMessengerListener", "Broadway EventListener", "Bridges Broadway EventBus to Symfony Messenger async_events transport")
+        Component(readModelProj, "ReadModel Projection", "AsMessageHandler", "GiftCardReadModelProjection: 10 handlers updating gift_cards_read")
+        Component(tenantSecurity, "Tenant Security", "EventSubscriber", "HmacAuthenticationMiddleware, HmacSignatureBuilder/Verifier, TenantAuthenticator, NonceStore")
+        Component(userSecurity, "User Security", "Symfony Security", "SecurityUser, SecurityUserProvider, form_login")
+        Component(doctrineRepos, "Doctrine Repositories", "Doctrine", "TenantRepository, TenantQueryRepository, TenantDocumentRepository, DoctrineUserRepository, GiftCardReadModel repos")
+        Component(adminCtrls, "Admin Controllers", "EasyAdmin", "Dashboard, Tenant, GiftCard, User, Login, TenantWizard controllers")
+        Component(consoleCmds, "Console Commands", "Symfony Console", "app:create-admin, app:gift-card:create-test, load-test, expire-cards, rebuild-read-model")
+        Component(docGen, "Document Generation", "DomPDF", "DomPdfGenerator (agreements, invoices), FilesystemDocumentStorage")
+    }
+}
+
+Rel(tenant, giftCardCtrl, "REST API", "HTTPS + HMAC")
+Rel(admin, adminCtrls, "Web Dashboard", "HTTPS + form_login")
+Rel(cron, consoleCmds, "CLI", "Shell")
+
+Rel(giftCardCtrl, requestDtos, "Validates input")
+Rel(giftCardCtrl, gcCmdHandlers, "Dispatches commands", "MessageBus")
+Rel(giftCardCtrl, gcQueryHandlers, "Dispatches queries", "MessageBus")
+Rel(tenantCtrl, tenantCmdHandlers, "Dispatches commands", "MessageBus")
+Rel(userCtrl, userCmdHandlers, "Dispatches commands", "MessageBus")
+
+Rel(gcCmdHandlers, gcProvider, "Loads aggregate")
+Rel(gcCmdHandlers, gcPersister, "Saves aggregate")
+Rel(gcCmdHandlers, gcAggregate, "Executes business logic")
+Rel(gcAggregate, domainEvents, "Produces events")
+
+Rel(gcProvider, broadwayEs, "Loads from event store")
+Rel(gcPersister, broadwayEs, "Saves events")
+Rel(broadwayEs, eventBridge, "EventBus publishes events")
+Rel(eventBridge, rabbitmq, "Dispatches to async_events", "AMQP")
+Rel(rabbitmq, readModelProj, "Delivers domain events", "AMQP")
+Rel(rabbitmq, webhookNotifier, "Delivers domain events", "AMQP")
+
+Rel(readModelProj, postgres, "Updates gift_cards_read", "SQL")
+Rel(webhookNotifier, webhookEndpoint, "HTTP webhooks", "HTTPS + HMAC")
+Rel(broadwayEs, postgres, "Reads/writes events", "SQL")
+Rel(doctrineRepos, postgres, "CRUD operations", "Doctrine DBAL")
+Rel(tenantSecurity, tenantEntity, "Validates API credentials")
+Rel(tenantSecurity, redis, "Nonce replay prevention")
+Rel(consoleCmds, gcCmdHandlers, "Dispatches commands", "MessageBus")
+
+@enduml

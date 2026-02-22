@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="pl" data-bs-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}{{ 'common.dashboard'|trans({}, 'ui') }}{% endblock %} - {{ 'layout.title_suffix'|trans({}, 'ui') }}</title>
+    {{ encore_entry_link_tags('admin') }}
+</head>
+<body class="admin-app" data-mercure-hub="{{ mercure()|default('/.well-known/mercure') }}" {% block body_data %}{% endblock %}>
+
+{# ── Sidebar ── #}
+<aside class="admin-sidebar offcanvas-lg offcanvas-start" tabindex="-1" id="adminSidebar" aria-labelledby="adminSidebarLabel">
+    <div class="offcanvas-header d-lg-none">
+        <div class="sidebar-brand" id="adminSidebarLabel">
+            <h5><i class="bi bi-gift-fill me-2"></i>{{ 'layout.brand'|trans({}, 'ui') }}</h5>
+            <small>{{ 'layout.admin_panel'|trans({}, 'ui') }}</small>
+        </div>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas" aria-label="{{ 'layout.close'|trans({}, 'ui') }}"></button>
+    </div>
+    <div class="offcanvas-body p-0 d-flex flex-column">
+        <div class="sidebar-brand d-none d-lg-flex">
+            <h5><i class="bi bi-gift-fill me-2"></i>{{ 'layout.brand'|trans({}, 'ui') }}</h5>
+            <small>{{ 'layout.admin_panel'|trans({}, 'ui') }}</small>
+        </div>
+
+        <div class="nav-section">{{ 'layout.menu'|trans({}, 'ui') }}</div>
+        <ul class="nav flex-column">
+            <li class="nav-item">
+                <a class="nav-link {{ app.request.attributes.get('_route') == 'admin' ? 'active' : '' }}"
+                   href="{{ path('admin') }}">
+                    <i class="bi bi-grid-1x2-fill"></i>{{ 'common.dashboard'|trans({}, 'ui') }}
+                </a>
+            </li>
+        </ul>
+
+        <div class="nav-section">{{ 'layout.management'|trans({}, 'ui') }}</div>
+        <ul class="nav flex-column">
+            <li class="nav-item">
+                <a class="nav-link {{ app.request.attributes.get('_route') starts with 'admin_tenant' ? 'active' : '' }}"
+                   href="{{ path('admin_tenant_index') }}">
+                    <i class="bi bi-building-fill"></i>{{ 'common.tenants'|trans({}, 'ui') }}
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link {{ app.request.attributes.get('_route') starts with 'admin_giftcard' ? 'active' : '' }}"
+                   href="{{ path('admin_giftcard_index') }}">
+                    <i class="bi bi-credit-card-2-front-fill"></i>{{ 'common.gift_cards'|trans({}, 'ui') }}
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link {{ app.request.attributes.get('_route') starts with 'admin_user' ? 'active' : '' }}"
+                   href="{{ path('admin_user_index') }}">
+                    <i class="bi bi-people-fill"></i>{{ 'common.users'|trans({}, 'ui') }}
+                </a>
+            </li>
+        </ul>
+
+        {% if app.user %}
+        <div class="sidebar-footer mt-auto">
+            <div class="user-stack">
+                <div class="user-avatar">
+                    <i class="bi bi-person-fill"></i>
+                </div>
+                <div class="user-meta">
+                    <div class="user-name">{{ app.user.userIdentifier }}</div>
+                    <div class="d-flex gap-2">
+                        <a href="{{ path('admin_profile') }}" class="user-logout">
+                            <i class="bi bi-person-gear"></i> {{ 'layout.profile'|trans({}, 'ui') }}
+                        </a>
+                        <a href="{{ path('admin_logout') }}" class="user-logout">
+                            <i class="bi bi-box-arrow-left"></i> {{ 'layout.log_out'|trans({}, 'ui') }}
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</aside>
+
+{# ── Main content ── #}
+<div class="admin-main">
+    <header class="admin-topbar">
+        <div class="topbar-left">
+            <button class="btn btn-icon btn-ghost d-lg-none" type="button" data-bs-toggle="offcanvas" data-bs-target="#adminSidebar" aria-controls="adminSidebar">
+                <i class="bi bi-list"></i>
+            </button>
+            <div class="page-title">{% block page_title %}{{ 'common.dashboard'|trans({}, 'ui') }}{% endblock %}</div>
+        </div>
+        {% if app.user %}
+        <div class="topbar-right">
+            <div class="user-chip">
+                <i class="bi bi-person-circle"></i>
+                <span>{{ app.user.userIdentifier }}</span>
+            </div>
+            <a class="topbar-logout" href="{{ path('admin_logout') }}">{{ 'layout.log_out'|trans({}, 'ui') }}</a>
+        </div>
+        {% endif %}
+    </header>
+
+    <main class="admin-body">
+        {% block content %}{% endblock %}
+    </main>
+
+    {% include 'admin/components/_toast_container.html.twig' %}
+</div>
+
+{{ encore_entry_script_tags('admin') }}
+</body>
+</html>

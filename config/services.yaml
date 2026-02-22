@@ -1,0 +1,132 @@
+parameters:
+    document_storage_path: '%kernel.project_dir%/var/storage/documents'
+
+services:
+    _defaults:
+        autowire: true
+        autoconfigure: true
+
+    App\:
+        resource: '../src/'
+
+
+    # Broadway Event Store Configuration - Base store (decorated by TenantAwareEventStore)
+    broadway.event_store.dbal:
+        class: Broadway\EventStore\Dbal\DBALEventStore
+        arguments:
+            - '@doctrine.dbal.default_connection'
+            - '@broadway.serializer.reflection'
+            - '@broadway.serializer.reflection'
+            - 'events'
+            - false
+
+    # Tenant Context - stores current tenant for request lifecycle
+    App\Infrastructure\Tenant\TenantContext:
+        shared: true  # Singleton per request
+
+    # GetGiftCardHistory reads raw events for display - bypass tenant decorator
+    App\Application\GiftCard\Handler\GetGiftCardHistory:
+        arguments:
+            $eventStore: '@broadway.event_store.dbal'
+
+    # Tenant-aware EventStore decorator - adds tenant_id to metadata and enforces RLS
+    Broadway\EventStore\EventStore:
+        class: App\Infrastructure\GiftCard\EventSourcing\Broadway\TenantAwareEventStore
+        arguments:
+            - '@broadway.event_store.dbal'
+            - '@App\Infrastructure\Tenant\TenantContext'
+
+    # Aggregate Factory
+    Broadway\EventSourcing\AggregateFactory\AggregateFactory:
+        class: Broadway\EventSourcing\AggregateFactory\PublicConstructorAggregateFactory
+
+    # Event Bus - delegates events to Symfony Messenger
+    Broadway\EventHandling\EventBus:
+        class: Broadway\EventHandling\SimpleEventBus
+        calls:
+            - ['subscribe', ['@App\Infrastructure\GiftCard\EventSourcing\Broadway\EventListener\DomainEventToMessengerListener']]
+
+    # Broadway Event Listener - forwards domain events to Symfony Messenger
+    App\Infrastructure\GiftCard\EventSourcing\Broadway\EventListener\DomainEventToMessengerListener:
+        arguments:
+            $messageBus: '@messenger.default_bus'
+
+    # Serializers - ReflectionSerializer handles Value Objects automatically
+    broadway.serializer.reflection:
+        class: Broadway\Serializer\ReflectionSerializer
+
+    Broadway\Serializer\Serializer: '@broadway.serializer.reflection'
+
+    # Event Sourcing Repository for GiftCard aggregate (Broadway)
+    broadway.repository.gift_card:
+        class: Broadway\EventSourcing\EventSourcingRepository
+        arguments:
+            - '@Broadway\EventStore\EventStore'
+            - '@Broadway\EventHandling\EventBus'
+            - 'App\Domain\GiftCard\Aggregate\GiftCard'
+            - '@Broadway\EventSourcing\AggregateFactory\AggregateFactory'
+
+    # Adapter to expose the repository through the domain port
+    App\Infrastructure\GiftCard\EventSourcing\Broadway\GiftCardRepositoryBroadway:
+        arguments:
+            $inner: '@broadway.repository.gift_card'
+
+    # Bind the port to the Broadway-backed implementation
+    App\Domain\GiftCard\Port\GiftCardRepository: '@App\Infrastructure\GiftCard\EventSourcing\Broadway\GiftCardRepositoryBroadway'
+
+    # Tenant repositories - CQRS separation
+    App\Domain\Tenant\Port\TenantRepositoryInterface: '@App\Infrastructure\Tenant\Persistence\Doctrine\TenantRepository'
+    App\Domain\Tenant\Port\TenantQueryRepositoryInterface: '@App\Infrastructure\Tenant\Persistence\Doctrine\TenantQueryRepository'
+
+    # Tenant application ports
+    App\Application\Tenant\Port\TenantProviderInterface: '@App\Application\Tenant\Provider\TenantProvider'
+    App\Application\Tenant\Port\TenantPersisterInterface: '@App\Application\Tenant\Persister\TenantPersister'
+
+    # Tenant document ports
+    App\Application\Tenant\Port\PdfGeneratorInterface: '@App\Infrastructure\Tenant\Document\DomPdfGenerator'
+    App\Application\Tenant\Port\DocumentStorageInterface: '@App\Infrastructure\Tenant\Document\FilesystemDocumentStorage'
+    App\Application\Tenant\Port\DocumentPersisterInterface: '@App\Application\Tenant\Persister\DocumentPersister'
+    App\Domain\Tenant\Port\TenantDocumentRepositoryInterface: '@App\Infrastructure\Tenant\Persistence\Doctrine\TenantDocumentRepository'
+
+    App\Infrastructure\Tenant\Document\FilesystemDocumentStorage:
+        arguments:
+            $storageBasePath: '%document_storage_path%'
+
+    # HMAC Authentication - security components
+    App\Infrastructure\Tenant\Security\NonceStoreInterface: '@App\Infrastructure\Tenant\Security\InMemoryNonceStore'
+
+    # HMAC Validator - validates tenant API signatures
+    App\Infrastructure\Tenant\Security\HmacValidator:
+        autowire: true
+
+    # HMAC Authentication Listener - authenticates tenant requests
+    App\Infrastructure\Tenant\Security\HmacAuthenticationListener:
+        autowire: true
+        tags:
+            - { name: kernel.event_subscriber }
+
+    # Tenant Authentication Exception Listener - converts exceptions to HTTP 401
+    App\Infrastructure\Tenant\Security\TenantAuthenticationExceptionListener:
+        autowire: true
+        tags:
+            - { name: kernel.event_subscriber }
+
+    # Activation application ports
+    App\Application\Activation\Port\CardAssignmentCheckerInterface: '@App\Infrastructure\Activation\Repository\CardAssignmentRepository'
+
+    # GiftCard application ports
+    App\Application\GiftCard\Port\GiftCardProviderInterface: '@App\Application\GiftCard\Provider\GiftCardProvider'
+    App\Application\GiftCard\Port\GiftCardPersisterInterface: '@App\Application\GiftCard\Persister\GiftCardPersister'
+    App\Application\GiftCard\Port\GiftCardReadModelRepositoryInterface: '@App\Infrastructure\GiftCard\Persistence\ReadModel\GiftCardReadModelQueryRepository'
+    App\Application\GiftCard\Port\GiftCardReadModelWriterInterface: '@App\Infrastructure\GiftCard\Persistence\ReadModel\GiftCardReadModelRepository'
+
+    # User application ports
+    App\Domain\User\Port\UserRepository: '@App\Infrastructure\User\Persistence\DoctrineUserRepository'
+    App\Application\User\Port\UserProviderInterface: '@App\Application\User\Provider\UserProvider'
+    App\Application\User\Port\UserPersisterInterface: '@App\Application\User\Persister\UserPersister'
+
+    # Password Hasher Factory
+    Symfony\Component\PasswordHasher\Hasher\PasswordHasherFactoryInterface:
+        class: Symfony\Component\PasswordHasher\Hasher\PasswordHasherFactory
+        arguments:
+            - App\Domain\User\Entity\User: { algorithm: 'auto' }

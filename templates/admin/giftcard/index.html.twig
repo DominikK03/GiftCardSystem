@@ -1,0 +1,136 @@
+{% extends 'admin/layout.html.twig' %}
+
+{% block title %}{{ 'giftcard.title'|trans({}, 'ui') }}{% endblock %}
+{% block page_title %}{{ 'giftcard.title'|trans({}, 'ui') }}{% endblock %}
+
+{% block content %}
+{# Filters #}
+<div class="card mb-4">
+    <div class="card-body py-2">
+        <form method="GET" action="{{ path('admin_giftcard_index') }}" class="row g-2 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label mb-1" style="font-size:.75rem;">{{ 'giftcard.filter_status'|trans({}, 'ui') }}</label>
+                <select name="status" class="form-select form-select-sm">
+                    <option value="">{{ 'giftcard.all_statuses'|trans({}, 'ui') }}</option>
+                    {% for status in ['inactive', 'active', 'expired', 'depleted', 'cancelled', 'suspended'] %}
+                        <option value="{{ status }}" {{ currentStatus == status ? 'selected' : '' }}>{{ ('status.' ~ status)|trans({}, 'ui') }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label mb-1" style="font-size:.75rem;">{{ 'giftcard.filter_tenant'|trans({}, 'ui') }}</label>
+                <select name="tenant" class="form-select form-select-sm">
+                    <option value="">{{ 'giftcard.all_tenants'|trans({}, 'ui') }}</option>
+                    {% for t in tenants %}
+                        <option value="{{ t.id }}" {{ currentTenant == t.id ~ '' ? 'selected' : '' }}>{{ t.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label mb-1" style="font-size:.75rem;">{{ 'giftcard.filter_id'|trans({}, 'ui') }}</label>
+                <input type="text" name="id" value="{{ currentId }}" class="form-control form-control-sm" placeholder="{{ 'giftcard.filter_id_placeholder'|trans({}, 'ui') }}">
+            </div>
+            <div class="col-md-3 d-flex gap-2">
+                <button type="submit" class="btn btn-sm btn-primary">
+                    <i class="bi bi-funnel me-1"></i>{{ 'giftcard.filter_button'|trans({}, 'ui') }}
+                </button>
+                <a href="{{ path('admin_giftcard_index') }}" class="btn btn-sm btn-outline-secondary">{{ 'giftcard.clear_button'|trans({}, 'ui') }}</a>
+                {% if is_granted('ROLE_OWNER') %}
+                    <a href="{{ path('admin_giftcard_issue') }}" class="btn btn-sm btn-success ms-auto">
+                        <i class="bi bi-receipt me-1"></i>{{ 'giftcard.issue_invoice'|trans({}, 'ui') }}
+                    </a>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="d-flex justify-content-end mb-2">
+    <span class="text-slate-400" style="font-size:.8rem;">{{ 'common.results'|trans({'%count%': total}, 'ui') }}</span>
+</div>
+
+<div class="card">
+    <div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <thead>
+                <tr>
+                    <th>{{ 'common.id'|trans({}, 'ui') }}</th>
+                    <th>{{ 'giftcard.card_number'|trans({}, 'ui') }}</th>
+                    <th>{{ 'giftcard.tenant'|trans({}, 'ui') }}</th>
+                    <th>{{ 'common.status'|trans({}, 'ui') }}</th>
+                    <th class="text-end">{{ 'common.balance'|trans({}, 'ui') }}</th>
+                    <th>{{ 'giftcard.expires'|trans({}, 'ui') }}</th>
+                    <th>{{ 'common.created'|trans({}, 'ui') }}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for gc in giftCards %}
+                    <tr style="cursor:pointer;" onclick="window.location='{{ path('admin_giftcard_detail', {id: gc.id}) }}'">
+                        <td><span class="id-cell">{{ gc.id|slice(0, 8) }}</span></td>
+                        <td>
+                            {% if gc.cardNumber %}
+                                <code style="font-size:.75rem;">{{ gc.cardNumber }}</code>
+                            {% else %}
+                                <span class="text-slate-400">—</span>
+                            {% endif %}
+                        </td>
+                        <td><span class="id-cell">{{ gc.tenantId|slice(0, 8) }}</span></td>
+                        <td>
+                            {% set statusStyles = {
+                                'inactive': 'background:#f1f5f9;color:#64748b;',
+                                'active':   'background:#ecfdf5;color:#065f46;',
+                                'expired':  'background:#fffbeb;color:#92400e;',
+                                'depleted': 'background:#fef2f2;color:#991b1b;',
+                                'cancelled':'background:#fef2f2;color:#991b1b;',
+                                'suspended':'background:#fffbeb;color:#92400e;'
+                            } %}
+                            <span class="badge" style="{{ statusStyles[gc.status]|default('') }}">{{ ('status.' ~ gc.status)|trans({}, 'ui') }}</span>
+                        </td>
+                        <td class="text-end fw-medium">
+                            {{ (gc.balanceAmount / 100)|number_format(2, ',', ' ') }}
+                            <span class="text-slate-400">{{ gc.balanceCurrency }}</span>
+                        </td>
+                        <td class="text-slate-400" style="font-size:.8rem;">
+                            {{ gc.expiresAt ? gc.expiresAt|date('d.m.Y') : '—' }}
+                        </td>
+                        <td class="text-slate-400" style="font-size:.8rem;">{{ gc.createdAt|date('d.m.Y H:i') }}</td>
+                    </tr>
+                {% else %}
+                    <tr>
+                        <td colspan="7">
+                            <div class="empty-state">
+                                <i class="bi bi-credit-card d-block"></i>
+                                <p>{{ 'giftcard.no_gift_cards'|trans({}, 'ui') }}</p>
+                            </div>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{# Pagination #}
+{% if totalPages > 1 %}
+    <nav class="mt-4 d-flex justify-content-center">
+        <ul class="pagination mb-0">
+            {% set filterParams = {status: currentStatus, tenant: currentTenant, id: currentId} %}
+            <li class="page-item {{ currentPage <= 1 ? 'disabled' : '' }}">
+                <a class="page-link" href="{{ path('admin_giftcard_index', filterParams|merge({page: currentPage - 1})) }}">
+                    <i class="bi bi-chevron-left"></i>
+                </a>
+            </li>
+            {% for p in 1..totalPages %}
+                <li class="page-item {{ p == currentPage ? 'active' : '' }}">
+                    <a class="page-link" href="{{ path('admin_giftcard_index', filterParams|merge({page: p})) }}">{{ p }}</a>
+                </li>
+            {% endfor %}
+            <li class="page-item {{ currentPage >= totalPages ? 'disabled' : '' }}">
+                <a class="page-link" href="{{ path('admin_giftcard_index', filterParams|merge({page: currentPage + 1})) }}">
+                    <i class="bi bi-chevron-right"></i>
+                </a>
+            </li>
+        </ul>
+    </nav>
+{% endif %}
+{% endblock %}

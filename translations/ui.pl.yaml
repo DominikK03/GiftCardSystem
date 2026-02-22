@@ -1,0 +1,411 @@
+# ── Common ──
+common:
+    dashboard: Dashboard
+    tenants: Najemcy
+    gift_cards: Karty podarunkowe
+    users: Użytkownicy
+    actions: Akcje
+    id: ID
+    name: Nazwa
+    email: Email
+    status: Status
+    created: Utworzono
+    balance: Saldo
+    results: '%count% wyników'
+    no_data: Brak danych
+
+# ── Statuses ──
+status:
+    active: Aktywny
+    inactive: Nieaktywny
+    suspended: Zawieszony
+    cancelled: Anulowany
+    expired: Wygasły
+    depleted: Wyczerpany
+
+# ── Layout ──
+layout:
+    title_suffix: Gift Card System
+    brand: Gift Card
+    admin_panel: Panel administratora
+    menu: Menu
+    management: Zarządzanie
+    log_out: Wyloguj się
+    profile: Profil
+    close: Zamknij
+    select_tenant: Wybierz najemcę
+
+# ── Login ──
+login:
+    title: Logowanie - Gift Card System
+    heading: Gift Card System
+    email_label: Adres email
+    password_label: Hasło
+    password_placeholder: Wpisz hasło
+    sign_in: Zaloguj się
+
+# ── Dashboard ──
+dashboard:
+    title: Dashboard
+    tenants: Najemcy
+    gift_cards: Karty podarunkowe
+    users: Użytkownicy
+    active: aktywnych
+    suspended: zawieszonych
+    cancelled: anulowanych
+    inactive: nieaktywnych
+    expired: wygasłych
+    depleted: wyczerpanych
+    status_distribution: Rozkład statusów
+    total_balance: Saldo łączne
+    active_cards_balance: Saldo aktywnych kart
+    total_redeemed: Łącznie zrealizowano
+    total_amount_used: Łączna wykorzystana kwota
+    invoices: Faktury
+    this_month: W tym miesiącu
+    expiring_soon: Wkrótce wygasające
+    within_30_days: W ciągu 30 dni
+    recent_activity: Ostatnia aktywność
+    top_tenants: Najlepsi najemcy
+    updated: Zaktualizowano
+    active_cards: Aktywne karty
+    total_balance_header: Saldo łączne
+    no_activity_yet: Brak aktywności
+    no_active_cards_yet: Brak aktywnych kart
+    tenant: Najemca
+
+# ── Gift Cards ──
+giftcard:
+    title: Karty podarunkowe
+    filter_status: Status
+    all_statuses: Wszystkie statusy
+    filter_tenant: Najemca
+    all_tenants: Wszyscy najemcy
+    filter_id: ID karty
+    filter_id_placeholder: 'np. 550e8400'
+    filter_button: Filtruj
+    clear_button: Wyczyść
+    issue_invoice: Wystaw fakturę
+    tenant: Najemca
+    expires: Wygasa
+    no_gift_cards: Brak kart podarunkowych
+    issue_title: Wystawianie kart podarunkowych i faktury
+    issue_heading: Wystawianie kart podarunkowych i faktury
+    select_tenant: '-- Wybierz najemcę --'
+    currency: Waluta
+    vat_rate: 'Stawka VAT (%)'
+    items: Pozycje
+    qr_code: "Kod QR"
+    quantity: Ilość
+    card_value: 'Wartość karty (w groszach)'
+    quantity_placeholder: 'np. 10'
+    card_value_placeholder: 'np. 5000 = 50,00'
+    add_line: Dodaj pozycję
+    cancel: Anuluj
+    issue_submit: Wystawianie kart podarunkowych i faktury
+    detail_title: 'Karta %id%...'
+    detail_heading: Szczegóły karty podarunkowej
+    initial_amount: Kwota początkowa
+    activated_at: Aktywowano
+    suspended_at: Zawieszono
+    cancelled_at: Anulowano
+    expired_at: Wygasło
+    depleted_at: Wyczerpano
+    back_to_list: Powrót do listy
+    action_activate: Aktywuj kartę
+    action_suspend: Zawieś kartę
+    action_reactivate: Reaktywuj kartę
+    action_cancel: Anuluj kartę
+    card_number: Numer karty
+    pin: PIN
+    cancel_confirm: Czy na pewno chcesz anulować tę kartę?
+    activated_success: Karta została aktywowana.
+    suspended_success: Karta została zawieszona.
+    reactivated_success: Karta została reaktywowana.
+    cancelled_success: Karta została anulowana.
+    event_history: Historia zdarzeń
+    events: zdarzeń
+    event_type: Zdarzenie
+    occurred_at: Data
+
+# ── Tenants ──
+tenant:
+    title: Najemcy
+    all: Wszystkie
+    new_tenant: Nowy najemca
+    name_placeholder: 'Nazwa...'
+    nip_placeholder: 'NIP...'
+    clear_search: Wyczyść wyszukiwanie
+    tax_id: NIP
+    view: Podgląd
+    edit: Edytuj
+    no_tenants: Brak najemców do wyświetlenia
+    details: Szczegóły najemcy
+    phone: Telefon
+    address: Adres
+    representative: Reprezentant
+    suspended_at: Zawieszono
+    cancelled_at: Anulowano
+    edit_details: Edytuj szczegóły
+    back_to_list: Powrót do listy
+    cooperation_agreement: Umowa o współpracy
+    signed: Podpisana
+    generated: Wygenerowana
+    download: Pobierz
+    documents: Dokumenty
+    doc_type_agreement: Umowa
+    doc_type_signed_agreement: Podpisana umowa
+    doc_type_invoice: Faktura
+    type: Typ
+    size: Rozmiar
+    no_documents: Brak dokumentów
+    edit_title: 'Edycja: %name%'
+    tab_basic: Dane podstawowe
+    tab_address: Adres
+    tab_representative: Reprezentant
+    company_name: Nazwa firmy
+    email_address: Adres email
+    phone_number: Numer telefonu
+    street: Ulica
+    city: Miasto
+    postal_code: Kod pocztowy
+    country: Kraj
+    first_name: Imię
+    last_name: Nazwisko
+    cancel: Anuluj
+    save_changes: Zapisz zmiany
+    action_suspend: Zawieś najemcę
+    action_reactivate: Reaktywuj najemcę
+    action_cancel: Anuluj najemcę
+    cancel_confirm: Czy na pewno chcesz anulować tego najemcę? Ta operacja jest nieodwracalna.
+    updated_success: Dane najemcy zostały zaktualizowane.
+    suspended_success: Najemca został zawieszony.
+    reactivated_success: Najemca został reaktywowany.
+    cancelled_success: Najemca został anulowany.
+
+# ── Users ──
+user:
+    title: Użytkownicy
+    user_list: Lista użytkowników
+    role: Rola
+    active: Aktywny
+    inactive: Nieaktywny
+    no_users: Brak użytkowników
+    new_user: Nowy użytkownik
+    create_title: Nowy użytkownik
+    edit_title: 'Edycja użytkownika: %email%'
+    email_label: Email
+    password_label: Hasło
+    new_password: Nowe hasło
+    new_password_hint: Pozostaw puste, aby nie zmieniać hasła.
+    select_role: Wybierz rolę
+    create_submit: Utwórz użytkownika
+    save_changes: Zapisz zmiany
+    cancel: Anuluj
+    edit: Edytuj
+    delete: Usuń
+    delete_confirm: Czy na pewno chcesz usunąć tego użytkownika?
+    activate: Aktywuj
+    deactivate: Dezaktywuj
+    cannot_delete_self: Nie możesz usunąć samego siebie.
+    created_success: Użytkownik został utworzony.
+    updated_success: Dane użytkownika zostały zaktualizowane.
+    deleted_success: Użytkownik został usunięty.
+    activated_success: Użytkownik został aktywowany.
+    deactivated_success: Użytkownik został dezaktywowany.
+    all_roles: Wszystkie role
+    all_statuses: Wszystkie statusy
+    filter_button: Filtruj
+    clear_button: Wyczyść
+
+# ── Wizard ──
+wizard:
+    step_basic_info: Dane podstawowe
+    step_address: Adres i reprezentant
+    step_agreement: Podgląd umowy
+    step_confirmation: Potwierdzenie
+    new_tenant: Nowy najemca
+    step1_title: 'Nowy najemca - Krok 1'
+    step2_title: 'Nowy najemca - Krok 2'
+    step3_title: 'Nowy najemca - Krok 3'
+    step4_title: 'Nowy najemca - Krok 4'
+    basic_info: Dane podstawowe
+    company_name: Nazwa firmy
+    email: Email
+    tax_id: NIP
+    phone: Telefon
+    next: Dalej
+    back: Wstecz
+    address: Adres
+    street: Ulica
+    city: Miasto
+    postal_code: Kod pocztowy
+    country: Kraj
+    representative: Reprezentant
+    first_name: Imię
+    last_name: Nazwisko
+    agreement_preview: Podgląd umowy
+    agreement_hint: Dokument zostanie wygenerowany po utworzeniu najemcy
+    summary: Podsumowanie
+    signed_agreement_label: Podpisana umowa (PDF)
+    signed_agreement_hint: Opcjonalne. Prześlij podpisaną umowę o współpracy (maks. 10 MB).
+    confirm_and_create: Potwierdź i utwórz
+
+# ── Activation ──
+activation:
+    page_title: Aktywacja karty podarunkowej
+    form_heading: Aktywuj swoją kartę podarunkową
+    form_description: Wprowadź dane karty podarunkowej, aby ją aktywować i przypisać do swojego konta.
+    email_label: Twój adres email
+    email_placeholder: jan@example.com
+    card_number_label: Numer karty
+    card_number_placeholder: 'np. GC7K4M2X9P1R'
+    pin_label: PIN karty
+    pin_placeholder: 'np. 48291537'
+    submit: Kontynuuj
+    verify_heading: Weryfikacja email
+    verify_description: 'Wysłaliśmy 6-cyfrowy kod weryfikacyjny na adres:'
+    code_label: Kod weryfikacyjny
+    code_placeholder: '000000'
+    verify_submit: Zweryfikuj
+    code_expires: 'Kod jest ważny przez 15 minut.'
+    summary_heading: Podsumowanie karty
+    summary_description: Sprawdź dane karty podarunkowej przed jej aktywacją.
+    summary_card_number: Numer karty
+    summary_balance: Saldo
+    summary_expires: Data ważności
+    summary_email: Przypisanie do
+    assign_button: Przypisz kartę do mojego konta
+    success_heading: Karta została aktywowana!
+    success_description: Karta podarunkowa została pomyślnie aktywowana i przypisana do Twojego konta email.
+    error_heading: Wystąpił błąd
+    error_invalid_email: Nieprawidłowy adres email.
+    error_card_not_found: Nie znaleziono karty o podanym numerze.
+    error_invalid_pin: Nieprawidłowy PIN karty.
+    error_card_not_inactive: Karta została już aktywowana lub nie jest dostępna.
+    error_invalid_code: Nieprawidłowy kod weryfikacyjny.
+    error_code_expired: Kod weryfikacyjny wygasł. Spróbuj ponownie.
+    error_request_not_found: Nie znaleziono żądania aktywacji.
+    error_not_verified: Żądanie nie zostało zweryfikowane.
+    error_invalid_return_url: Nieprawidłowy adres powrotny.
+    error_card_already_assigned: Ta karta podarunkowa została już przypisana do innego konta.
+    back_to_form: Powrót do formularza
+
+# ── My Cards ──
+my_cards:
+    page_title: Moje karty podarunkowe
+    form_heading: Sprawdź swoje karty podarunkowe
+    form_description: Podaj adres email, na który aktywowałeś karty podarunkowe.
+    email_label: Twój adres email
+    email_placeholder: jan@example.com
+    submit: Wyślij kod weryfikacyjny
+    verify_heading: Weryfikacja email
+    verify_description: 'Wysłaliśmy 6-cyfrowy kod weryfikacyjny na adres:'
+    code_label: Kod weryfikacyjny
+    code_placeholder: '000000'
+    verify_submit: Zweryfikuj
+    code_expires: 'Kod jest ważny przez 15 minut.'
+    cards_heading: Twoje karty podarunkowe
+    cards_count: 'Znaleziono %count% kart(a/y)'
+    no_cards: Brak kart podarunkowych przypisanych do tego adresu email.
+    card_number: Numer karty
+    balance: Saldo
+    status: Status
+    expires_at: Data ważności
+    details_button: Szczegóły
+    detail_heading: Szczegóły karty
+    issuer: Wystawca
+    back_to_list: Powrót do listy kart
+    event_history: Historia zdarzeń
+    events: zdarzeń
+    error_heading: Wystąpił błąd
+    error_invalid_email: Nieprawidłowy adres email.
+    error_request_not_found: Nie znaleziono żądania.
+    error_not_verified: Żądanie nie zostało zweryfikowane.
+    error_code_expired: Kod weryfikacyjny wygasł. Spróbuj ponownie.
+    error_invalid_code: Nieprawidłowy kod weryfikacyjny.
+    error_card_not_found: Nie znaleziono karty podarunkowej.
+    error_access_denied: Brak dostępu do tej karty.
+    back_to_form: Powrót do formularza
+
+# ── Documents ──
+document:
+    invoice:
+        title: Faktura VAT
+        number: 'Nr %number%'
+        issue_date: 'Data wystawienia:'
+        sale_date: 'Data sprzedaży:'
+        due_date: 'Termin płatności:'
+        seller: Sprzedawca
+        buyer: Nabywca
+        col_no: Lp.
+        col_name: Nazwa
+        col_quantity: Ilość
+        col_unit_price: Cena netto
+        col_net_value: Wart. netto
+        col_vat: VAT
+        col_vat_amount: Kwota VAT
+        col_gross: Brutto
+        total_net: 'Razem netto:'
+        total_vat: 'VAT %rate%%:'
+        total_gross: 'Razem brutto:'
+        payment_info: Informacje o płatności
+        payment_method: 'Forma płatności: przelew bankowy'
+        payment_due: 'Termin płatności:'
+        bank_account: 'Nr konta: 00 1234 5678 9012 3456 7890 1234'
+        signature_issuer: Podpis wystawcy
+        signature_receiver: Podpis odbiorcy
+    agreement:
+        title: Umowa o współpracy
+        subtitle: w zakresie systemu kart podarunkowych
+        date_place: 'Warszawa, dnia %date% r.'
+        operator: Operator systemu
+        partner: Partner (Tenant)
+        represented_by: 'Reprezentowany przez:'
+        section1_title: '&sect; 1. Przedmiot umowy'
+        section1_item1: Przedmiotem niniejszej umowy jest określenie zasad współpracy pomiędzy Operatorem systemu a Partnerem w zakresie korzystania z systemu kart podarunkowych.
+        section1_item2: Operator udostępnia Partnerowi platformę technologiczną umożliwiającą tworzenie, zarządzanie i realizację kart podarunkowych.
+        section1_item3: Partner zobowiązuje się do korzystania z systemu zgodnie z jego przeznaczeniem oraz niniejszą umową.
+        section2_title: '&sect; 2. Obowiązki Operatora'
+        section2_item1: Operator zobowiązuje się do zapewnienia dostępności systemu na poziomie minimum 99,5% w skali miesiąca.
+        section2_item2: Operator zapewnia wsparcie techniczne w godzinach 8:00-18:00 w dni robocze.
+        section2_item3: Operator zobowiązuje się do ochrony danych zgodnie z obowiązującymi przepisami RODO.
+        section3_title: '&sect; 3. Obowiązki Partnera'
+        section3_item1: Partner zobowiązuje się do zabezpieczenia kluczy API i nieprzekazywania ich osobom trzecim.
+        section3_item2: Partner zobowiązuje się do terminowego regulowania zobowiązań finansowych wynikających z niniejszej umowy.
+        section3_item3: Partner zobowiązuje się do niezwłocznego informowania Operatora o wszelkich nieprawidłowościach w działaniu systemu.
+        section4_title: '&sect; 4. Warunki finansowe'
+        section4_item1: Zasady rozliczeń finansowych określa odrębny cennik, stanowiący załącznik do niniejszej umowy.
+        section4_item2: Faktury wystawiane są na koniec każdego miesiąca kalendarzowego.
+        section4_item3: Termin płatności wynosi 14 dni od daty wystawienia faktury.
+        section5_title: '&sect; 5. Czas trwania i rozwiązanie'
+        section5_item1: Umowa zostaje zawarta na czas nieokreślony.
+        section5_item2: Każda ze stron może rozwiązać umowę z zachowaniem 30-dniowego okresu wypowiedzenia.
+        section5_item3: Operator zastrzega sobie prawo do natychmiastowego rozwiązania umowy w przypadku rażącego naruszenia jej postanowień przez Partnera.
+        section6_title: '&sect; 6. Postanowienia końcowe'
+        section6_item1: Wszelkie zmiany niniejszej umowy wymagają formy pisemnej pod rygorem nieważności.
+        section6_item2: W sprawach nieuregulowanych niniejszą umową stosuje się przepisy Kodeksu Cywilnego.
+        section6_item3: Umowę sporządzono w dwóch jednobrzmiących egzemplarzach, po jednym dla każdej ze stron.
+        signature_operator: Operator systemu
+        signature_partner: Partner (Tenant)
+
+# ── Profile ──
+profile:
+    title: Mój profil
+    personal_heading: Dane osobowe
+    password_heading: Zmiana hasła
+    email_label: Adres e-mail
+    email_readonly: Adres e-mail nie może być zmieniony.
+    first_name_label: Imię
+    last_name_label: Nazwisko
+    save_personal: Zapisz dane
+    current_password_label: Aktualne hasło
+    new_password_label: Nowe hasło
+    new_password_confirm_label: Potwierdź nowe hasło
+    password_hint: Minimalna długość to 8 znaków.
+    change_password_submit: Zmień hasło
+    personal_updated: Dane osobowe zostały zaktualizowane.
+    password_changed: Hasło zostało zmienione.
+    current_password_invalid: Podane aktualne hasło jest nieprawidłowe.
+    passwords_do_not_match: Nowe hasła nie są identyczne.
+    password_too_short: Nowe hasło musi mieć co najmniej 8 znaków.

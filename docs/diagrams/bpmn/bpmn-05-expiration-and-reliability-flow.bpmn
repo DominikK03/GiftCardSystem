@@ -1,0 +1,171 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" id="Defs_BPMN_05" targetNamespace="https://giftcard.local/bpmn" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI">
+  <bpmn:process id="Process_BPMN_05_ExpirationAndReliability" name="Card Expiration and Reliability Flow" isExecutable="true">
+    <bpmn:laneSet id="LaneSet_05">
+      <bpmn:lane id="Lane_Cron05" name="Scheduler/Cron">
+        <bpmn:flowNodeRef>Start_ScheduledRun</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_RunExpireCommand</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_Console05" name="ExpireGiftCardsCommand">
+        <bpmn:flowNodeRef>Task_FindExpiringCards</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_CardsFound</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_NoCardsLog</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_DispatchExpireCommands</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_Worker05" name="Async Worker">
+        <bpmn:flowNodeRef>Task_ConsumeExpireCommand</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_LoadCardAsSystem</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_ApplyExpireLogic</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_ExpireSuccess</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_RetryAndFailedTransport</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_Projection05" name="Projection and Monitoring">
+        <bpmn:flowNodeRef>Task_ProjectExpiredState</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_RecordOperationalResult</bpmn:flowNodeRef>
+      </bpmn:lane>
+    </bpmn:laneSet>
+    <bpmn:startEvent id="Start_ScheduledRun" name="Scheduled trigger"/>
+    <bpmn:task id="Task_RunExpireCommand" name="Run app:gift-card:expire-cards"/>
+    <bpmn:task id="Task_FindExpiringCards" name="Query active cards with expiresAt &lt;= now"/>
+    <bpmn:exclusiveGateway id="Gateway_CardsFound" name="Any cards to expire?"/>
+    <bpmn:task id="Task_NoCardsLog" name="Log no cards to expire"/>
+    <bpmn:task id="Task_DispatchExpireCommands" name="Dispatch ExpireCommand for each card"/>
+    <bpmn:task id="Task_ConsumeExpireCommand" name="Worker consumes ExpireCommand"/>
+    <bpmn:task id="Task_LoadCardAsSystem" name="Load aggregate with system path"/>
+    <bpmn:task id="Task_ApplyExpireLogic" name="Apply expire() and persist events"/>
+    <bpmn:exclusiveGateway id="Gateway_ExpireSuccess" name="Expire handled?"/>
+    <bpmn:task id="Task_RetryAndFailedTransport" name="Retry x3 then move to failed transport"/>
+    <bpmn:task id="Task_ProjectExpiredState" name="Handle GiftCardExpired and update read model"/>
+    <bpmn:task id="Task_RecordOperationalResult" name="Expose status for operations"/>
+    <bpmn:endEvent id="End_ExpirationSuccess" name="Expiration cycle complete"/>
+    <bpmn:endEvent id="End_NoCards" name="No work"/>
+    <bpmn:endEvent id="End_ExpirationFailed" name="Messages in failed transport"/>
+    <bpmn:sequenceFlow id="E01" sourceRef="Start_ScheduledRun" targetRef="Task_RunExpireCommand"/>
+    <bpmn:sequenceFlow id="E02" sourceRef="Task_RunExpireCommand" targetRef="Task_FindExpiringCards"/>
+    <bpmn:sequenceFlow id="E03" sourceRef="Task_FindExpiringCards" targetRef="Gateway_CardsFound"/>
+    <bpmn:sequenceFlow id="E04" sourceRef="Gateway_CardsFound" targetRef="Task_NoCardsLog" name="No"/>
+    <bpmn:sequenceFlow id="E05" sourceRef="Task_NoCardsLog" targetRef="End_NoCards"/>
+    <bpmn:sequenceFlow id="E06" sourceRef="Gateway_CardsFound" targetRef="Task_DispatchExpireCommands" name="Yes"/>
+    <bpmn:sequenceFlow id="E07" sourceRef="Task_DispatchExpireCommands" targetRef="Task_ConsumeExpireCommand"/>
+    <bpmn:sequenceFlow id="E08" sourceRef="Task_ConsumeExpireCommand" targetRef="Task_LoadCardAsSystem"/>
+    <bpmn:sequenceFlow id="E09" sourceRef="Task_LoadCardAsSystem" targetRef="Task_ApplyExpireLogic"/>
+    <bpmn:sequenceFlow id="E10" sourceRef="Task_ApplyExpireLogic" targetRef="Gateway_ExpireSuccess"/>
+    <bpmn:sequenceFlow id="E11" sourceRef="Gateway_ExpireSuccess" targetRef="Task_RetryAndFailedTransport" name="No"/>
+    <bpmn:sequenceFlow id="E12" sourceRef="Task_RetryAndFailedTransport" targetRef="End_ExpirationFailed"/>
+    <bpmn:sequenceFlow id="E13" sourceRef="Gateway_ExpireSuccess" targetRef="Task_ProjectExpiredState" name="Yes"/>
+    <bpmn:sequenceFlow id="E14" sourceRef="Task_ProjectExpiredState" targetRef="Task_RecordOperationalResult"/>
+    <bpmn:sequenceFlow id="E15" sourceRef="Task_RecordOperationalResult" targetRef="End_ExpirationSuccess"/>
+  </bpmn:process>
+  <bpmndi:BPMNDiagram xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNDiagram_Process_BPMN_05_ExpirationAndReliability">
+    <bpmndi:BPMNPlane id="BPMNPlane_Process_BPMN_05_ExpirationAndReliability" bpmnElement="Process_BPMN_05_ExpirationAndReliability">
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_Start_ScheduledRun" bpmnElement="Start_ScheduledRun">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="120" y="220" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_Task_RunExpireCommand" bpmnElement="Task_RunExpireCommand">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="290" y="220" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_Task_FindExpiringCards" bpmnElement="Task_FindExpiringCards">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="460" y="220" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_Gateway_CardsFound" bpmnElement="Gateway_CardsFound">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="630" y="220" width="50" height="50"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_Task_NoCardsLog" bpmnElement="Task_NoCardsLog">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="800" y="220" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_Task_DispatchExpireCommands" bpmnElement="Task_DispatchExpireCommands">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="970" y="220" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_Task_ConsumeExpireCommand" bpmnElement="Task_ConsumeExpireCommand">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="1140" y="220" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_Task_LoadCardAsSystem" bpmnElement="Task_LoadCardAsSystem">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="1310" y="220" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_Task_ApplyExpireLogic" bpmnElement="Task_ApplyExpireLogic">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="1480" y="220" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_Gateway_ExpireSuccess" bpmnElement="Gateway_ExpireSuccess">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="1650" y="220" width="50" height="50"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_Task_RetryAndFailedTransport" bpmnElement="Task_RetryAndFailedTransport">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="1820" y="220" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_Task_ProjectExpiredState" bpmnElement="Task_ProjectExpiredState">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="1990" y="220" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_Task_RecordOperationalResult" bpmnElement="Task_RecordOperationalResult">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="2160" y="220" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_End_ExpirationSuccess" bpmnElement="End_ExpirationSuccess">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="2330" y="220" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_End_NoCards" bpmnElement="End_NoCards">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="2500" y="220" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_End_ExpirationFailed" bpmnElement="End_ExpirationFailed">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="2670" y="220" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_E01" bpmnElement="E01">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="138" y="238"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="350" y="260"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_E02" bpmnElement="E02">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="350" y="260"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="520" y="260"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_E03" bpmnElement="E03">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="520" y="260"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="655" y="245"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_E04" bpmnElement="E04">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="655" y="245"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="860" y="260"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_E05" bpmnElement="E05">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="860" y="260"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="2518" y="238"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_E06" bpmnElement="E06">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="655" y="245"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="1030" y="260"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_E07" bpmnElement="E07">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="1030" y="260"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="1200" y="260"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_E08" bpmnElement="E08">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="1200" y="260"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="1370" y="260"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_E09" bpmnElement="E09">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="1370" y="260"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="1540" y="260"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_E10" bpmnElement="E10">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="1540" y="260"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="1675" y="245"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_E11" bpmnElement="E11">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="1675" y="245"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="1880" y="260"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_E12" bpmnElement="E12">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="1880" y="260"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="2688" y="238"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_E13" bpmnElement="E13">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="1675" y="245"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="2050" y="260"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_E14" bpmnElement="E14">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="2050" y="260"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="2220" y="260"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_E15" bpmnElement="E15">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="2220" y="260"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="2348" y="238"/>
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

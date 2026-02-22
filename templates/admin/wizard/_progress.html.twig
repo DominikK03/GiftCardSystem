@@ -1,0 +1,39 @@
+<div class="d-flex justify-content-center align-items-center mb-4">
+    {% for i in 1..4 %}
+        {% set labels = {1: 'wizard.step_basic_info'|trans({}, 'ui'), 2: 'wizard.step_address'|trans({}, 'ui'), 3: 'wizard.step_agreement'|trans({}, 'ui'), 4: 'wizard.step_confirmation'|trans({}, 'ui')} %}
+        {% set icons  = {1: 'bi-building', 2: 'bi-geo-alt', 3: 'bi-file-earmark-text', 4: 'bi-check2-all'} %}
+        <div class="d-flex align-items-center">
+            <div class="text-center" style="min-width: 120px;">
+                <div class="rounded-circle d-inline-flex align-items-center justify-content-center"
+                     style="width: 40px; height: 40px; font-size: .85rem; font-weight: 600; transition: all .2s ease;
+                     {% if i < currentStep %}
+                         background: #ecfdf5; color: #059669;
+                     {% elseif i == currentStep %}
+                         background: #3b82f6; color: #fff; box-shadow: 0 2px 8px rgba(59,130,246,.35);
+                     {% else %}
+                         background: #f1f5f9; color: #94a3b8;
+                     {% endif %}
+                     ">
+                    {% if i < currentStep %}
+                        <i class="bi bi-check-lg" style="font-size:1.1rem;"></i>
+                    {% else %}
+                        <i class="bi {{ icons[i] }}"></i>
+                    {% endif %}
+                </div>
+                <div class="mt-1" style="font-size: .7rem; font-weight: 500;
+                    {% if i == currentStep %} color: #3b82f6;
+                    {% elseif i < currentStep %} color: #059669;
+                    {% else %} color: #94a3b8;
+                    {% endif %}">
+                    {{ labels[i] }}
+                </div>
+            </div>
+            {% if i < 4 %}
+                <div style="width: 48px; height: 2px; margin-bottom: 20px; border-radius: 1px;
+                    {% if i < currentStep %} background: #10b981;
+                    {% else %} background: #e2e8f0;
+                    {% endif %}"></div>
+            {% endif %}
+        </div>
+    {% endfor %}
+</div>

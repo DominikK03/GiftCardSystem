@@ -1,0 +1,88 @@
+{% extends 'admin/layout.html.twig' %}
+
+{% block title %}{{ 'wizard.step2_title'|trans({}, 'ui') }}{% endblock %}
+{% block page_title %}{{ 'wizard.new_tenant'|trans({}, 'ui') }}{% endblock %}
+
+{% block content %}
+    {% include 'admin/wizard/_progress.html.twig' with {currentStep: 2} %}
+
+    <div class="row justify-content-center">
+        <div class="col-lg-6">
+            {% if errors is defined and errors|length > 0 %}
+                <div class="alert alert-danger d-flex align-items-start mb-3">
+                    <i class="bi bi-exclamation-triangle-fill me-2 mt-1"></i>
+                    <div>
+                        {% for error in errors %}
+                            <div>{{ error }}</div>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% endif %}
+
+            <form method="POST" action="{{ path('admin_tenant_wizard_step2') }}">
+                <input type="hidden" name="_token" value="{{ csrf_token('tenant_wizard') }}">
+
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <i class="bi bi-geo-alt me-2"></i>{{ 'wizard.address'|trans({}, 'ui') }}
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label class="form-label">{{ 'wizard.street'|trans({}, 'ui') }}</label>
+                            <input type="text" name="street" value="{{ data.street|default('') }}"
+                                   class="form-control" required>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">{{ 'wizard.city'|trans({}, 'ui') }}</label>
+                                <input type="text" name="city" value="{{ data.city|default('') }}"
+                                       class="form-control" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">{{ 'wizard.postal_code'|trans({}, 'ui') }}</label>
+                                <input type="text" name="postalCode" value="{{ data.postalCode|default('') }}"
+                                       class="form-control" required>
+                            </div>
+                        </div>
+
+                        <div class="mb-0">
+                            <label class="form-label">{{ 'wizard.country'|trans({}, 'ui') }}</label>
+                            <input type="text" name="country" value="{{ data.country|default('Poland') }}"
+                                   class="form-control" required>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <i class="bi bi-person me-2"></i>{{ 'wizard.representative'|trans({}, 'ui') }}
+                    </div>
+                    <div class="card-body">
+                        <div class="row mb-0">
+                            <div class="col-md-6">
+                                <label class="form-label">{{ 'wizard.first_name'|trans({}, 'ui') }}</label>
+                                <input type="text" name="firstName" value="{{ data.firstName|default('') }}"
+                                       class="form-control" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">{{ 'wizard.last_name'|trans({}, 'ui') }}</label>
+                                <input type="text" name="lastName" value="{{ data.lastName|default('') }}"
+                                       class="form-control" required>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-between">
+                    <a href="{{ path('admin_tenant_wizard_step1') }}" class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-left me-1"></i>{{ 'wizard.back'|trans({}, 'ui') }}
+                    </a>
+                    <button type="submit" class="btn btn-primary">
+                        {{ 'wizard.next'|trans({}, 'ui') }} <i class="bi bi-arrow-right ms-1"></i>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+{% endblock %}

@@ -1,0 +1,76 @@
+framework:
+    messenger:
+        buses:
+            messenger.bus.default:
+                middleware:
+                    - 'App\Infrastructure\Messenger\Middleware\TenantContextMiddleware'
+
+        failure_transport: failed
+
+        transports:
+            # Asynchronous transport for commands (RabbitMQ)
+            async:
+                dsn: '%env(MESSENGER_TRANSPORT_DSN)%'
+                options:
+                    exchange:
+                        name: 'gift_card_commands'
+                        type: direct
+                    queues:
+                        gift_card_commands: ~
+                retry_strategy:
+                    max_retries: 3
+                    delay: 1000
+                    multiplier: 2
+                    max_delay: 0
+
+            # Asynchronous transport for domain events (RabbitMQ)
+            async_events:
+                dsn: '%env(MESSENGER_TRANSPORT_DSN)%'
+                options:
+                    exchange:
+                        name: 'gift_card_events'
+                        type: fanout
+                    queues:
+                        gift_card_events: ~
+                retry_strategy:
+                    max_retries: 3
+                    delay: 1000
+                    multiplier: 2
+
+            # Failed messages transport
+            failed: 'doctrine://default?queue_name=failed'
+
+            # Synchronous transport for testing
+            sync: 'sync://'
+
+        routing:
+            # CreateCommand is synchronous (no routing = sync by default)
+            # Other commands go to async transport
+            'App\Application\GiftCard\Command\RedeemCommand': async
+            'App\Application\GiftCard\Command\ActivateCommand': async
+            'App\Application\GiftCard\Command\SuspendCommand': async
+            'App\Application\GiftCard\Command\ReactivateCommand': async
+            'App\Application\GiftCard\Command\CancelCommand': async
+            'App\Application\GiftCard\Command\AdjustBalanceCommand': async
+            'App\Application\GiftCard\Command\DecreaseBalanceCommand': async
+            'App\Application\GiftCard\Command\ExpireCommand': async
+            'App\Application\Activation\Command\SendVerificationEmailCommand': async
+
+            # Domain events go to async_events transport
+            'App\Domain\GiftCard\Event\GiftCardCreated': async_events
+            'App\Domain\GiftCard\Event\GiftCardRedeemed': async_events
+            'App\Domain\GiftCard\Event\GiftCardActivated': async_events
+            'App\Domain\GiftCard\Event\GiftCardSuspended': async_events
+            'App\Domain\GiftCard\Event\GiftCardReactivated': async_events
+            'App\Domain\GiftCard\Event\GiftCardCancelled': async_events
+            'App\Domain\GiftCard\Event\GiftCardExpired': async_events
+            'App\Domain\GiftCard\Event\GiftCardDepleted': async_events
+            'App\Domain\GiftCard\Event\GiftCardBalanceAdjusted': async_events
+            'App\Domain\GiftCard\Event\GiftCardBalanceDecreased': async_events
+
+when@test:
+    framework:
+        messenger:
+            transports:
+                async: 'sync://'
+                async_events: 'sync://'

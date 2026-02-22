@@ -1,0 +1,143 @@
+{% extends 'admin/layout.html.twig' %}
+
+{% block title %}{{ 'giftcard.issue_title'|trans({}, 'ui') }}{% endblock %}
+{% block page_title %}{{ 'giftcard.issue_title'|trans({}, 'ui') }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        {% if errors is defined and errors|length > 0 %}
+            <div class="alert alert-danger d-flex align-items-start mb-3">
+                <i class="bi bi-exclamation-triangle-fill me-2 mt-1"></i>
+                <div>
+                    {% for error in errors %}
+                        <div>{{ error }}</div>
+                    {% endfor %}
+                </div>
+            </div>
+        {% endif %}
+
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-receipt me-2"></i>{{ 'giftcard.issue_heading'|trans({}, 'ui') }}
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ path('admin_giftcard_issue') }}">
+                    <input type="hidden" name="_token" value="{{ csrf_token('giftcard_issue') }}">
+
+                    <div class="mb-3">
+                        <label class="form-label">{{ 'giftcard.filter_tenant'|trans({}, 'ui') }}</label>
+                        <select name="tenantId" class="form-select" required>
+                            <option value="">{{ 'giftcard.select_tenant'|trans({}, 'ui') }}</option>
+                            {% for t in tenants %}
+                                <option value="{{ t.id }}" {{ formData.tenantId|default('') == t.id ~ '' ? 'selected' : '' }}>
+                                    {{ t.name }} (NIP: {{ t.nip }})
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">{{ 'giftcard.currency'|trans({}, 'ui') }}</label>
+                            <select name="currency" class="form-select">
+                                <option value="PLN" {{ formData.currency|default('PLN') == 'PLN' ? 'selected' : '' }}>PLN</option>
+                                <option value="EUR" {{ formData.currency|default('') == 'EUR' ? 'selected' : '' }}>EUR</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">{{ 'giftcard.vat_rate'|trans({}, 'ui') }}</label>
+                            <select name="vatRate" class="form-select">
+                                <option value="23" {{ formData.vatRate|default('23') == '23' ? 'selected' : '' }}>23%</option>
+                                <option value="8" {{ formData.vatRate|default('') == '8' ? 'selected' : '' }}>8%</option>
+                                <option value="5" {{ formData.vatRate|default('') == '5' ? 'selected' : '' }}>5%</option>
+                                <option value="0" {{ formData.vatRate|default('') == '0' ? 'selected' : '' }}>0%</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    <label class="form-label fw-medium">{{ 'giftcard.items'|trans({}, 'ui') }}</label>
+                    <div id="items-container">
+                        <div class="item-row row mb-2 align-items-end">
+                            <div class="col-md-5">
+                                <label class="form-label" style="font-size:.85rem;">{{ 'giftcard.quantity'|trans({}, 'ui') }}</label>
+                                <input type="number" name="quantity[]" value="{{ formData.quantities[0]|default('') }}"
+                                       class="form-control" min="1" placeholder="{{ 'giftcard.quantity_placeholder'|trans({}, 'ui') }}" required>
+                            </div>
+                            <div class="col-md-5">
+                                <label class="form-label" style="font-size:.85rem;">{{ 'giftcard.card_value'|trans({}, 'ui') }}</label>
+                                <input type="number" name="amount[]" value="{{ formData.amounts[0]|default('') }}"
+                                       class="form-control" min="1" placeholder="{{ 'giftcard.card_value_placeholder'|trans({}, 'ui') }}" required>
+                            </div>
+                            <div class="col-md-2 d-grid">
+                                <button type="button" class="btn btn-outline-danger btn-remove-item" style="visibility:hidden;">
+                                    <i class="bi bi-x-lg"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button type="button" id="btn-add-item" class="btn btn-sm btn-outline-secondary mb-3">
+                        <i class="bi bi-plus-lg me-1"></i>{{ 'giftcard.add_line'|trans({}, 'ui') }}
+                    </button>
+
+                    <hr>
+
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ path('admin_giftcard_index') }}" class="btn btn-outline-secondary">
+                            <i class="bi bi-arrow-left me-1"></i>{{ 'giftcard.cancel'|trans({}, 'ui') }}
+                        </a>
+                        <button type="submit" class="btn btn-success">
+                            <i class="bi bi-receipt me-1"></i>{{ 'giftcard.issue_submit'|trans({}, 'ui') }}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const container = document.getElementById('items-container');
+    const addBtn = document.getElementById('btn-add-item');
+
+    function updateRemoveButtons() {
+        const rows = container.querySelectorAll('.item-row');
+        rows.forEach(function (row, idx) {
+            const btn = row.querySelector('.btn-remove-item');
+            btn.style.visibility = rows.length > 1 ? 'visible' : 'hidden';
+        });
+    }
+
+    addBtn.addEventListener('click', function () {
+        const row = document.createElement('div');
+        row.className = 'item-row row mb-2 align-items-end';
+        row.innerHTML =
+            '<div class="col-md-5">' +
+                '<input type="number" name="quantity[]" class="form-control" min="1" placeholder="{{ 'giftcard.quantity_placeholder'|trans({}, 'ui') }}" required>' +
+            '</div>' +
+            '<div class="col-md-5">' +
+                '<input type="number" name="amount[]" class="form-control" min="1" placeholder="{{ 'giftcard.card_value_placeholder'|trans({}, 'ui') }}" required>' +
+            '</div>' +
+            '<div class="col-md-2 d-grid">' +
+                '<button type="button" class="btn btn-outline-danger btn-remove-item"><i class="bi bi-x-lg"></i></button>' +
+            '</div>';
+        container.appendChild(row);
+        updateRemoveButtons();
+    });
+
+    container.addEventListener('click', function (e) {
+        var btn = e.target.closest('.btn-remove-item');
+        if (btn) {
+            btn.closest('.item-row').remove();
+            updateRemoveButtons();
+        }
+    });
+
+    updateRemoveButtons();
+});
+</script>
+{% endblock %}

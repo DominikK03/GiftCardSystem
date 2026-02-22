@@ -1,0 +1,71 @@
+{% extends 'admin/layout.html.twig' %}
+
+{% block title %}{{ 'wizard.step4_title'|trans({}, 'ui') }}{% endblock %}
+{% block page_title %}{{ 'wizard.new_tenant'|trans({}, 'ui') }}{% endblock %}
+
+{% block content %}
+    {% include 'admin/wizard/_progress.html.twig' with {currentStep: 4} %}
+
+    <div class="row justify-content-center">
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-header">
+                    <i class="bi bi-clipboard-check me-2"></i>{{ 'wizard.summary'|trans({}, 'ui') }}
+                </div>
+                <div class="card-body p-0">
+                    <table class="table mb-0" style="border-collapse:separate;">
+                        <tbody>
+                            <tr>
+                                <td class="text-slate-400 fw-medium" style="width:160px;padding-left:20px;">{{ 'wizard.company_name'|trans({}, 'ui') }}</td>
+                                <td class="fw-medium">{{ data.name }}</td>
+                            </tr>
+                            <tr>
+                                <td class="text-slate-400 fw-medium" style="padding-left:20px;">{{ 'wizard.email'|trans({}, 'ui') }}</td>
+                                <td>{{ data.email }}</td>
+                            </tr>
+                            <tr>
+                                <td class="text-slate-400 fw-medium" style="padding-left:20px;">{{ 'wizard.tax_id'|trans({}, 'ui') }}</td>
+                                <td>{{ data.nip }}</td>
+                            </tr>
+                            <tr>
+                                <td class="text-slate-400 fw-medium" style="padding-left:20px;">{{ 'wizard.phone'|trans({}, 'ui') }}</td>
+                                <td>{{ data.phoneNumber }}</td>
+                            </tr>
+                            <tr>
+                                <td class="text-slate-400 fw-medium" style="padding-left:20px;">{{ 'tenant.address'|trans({}, 'ui') }}</td>
+                                <td>{{ data.street }}, {{ data.postalCode }} {{ data.city }}, {{ data.country }}</td>
+                            </tr>
+                            <tr>
+                                <td class="text-slate-400 fw-medium" style="padding-left:20px;">{{ 'tenant.representative'|trans({}, 'ui') }}</td>
+                                <td>{{ data.firstName }} {{ data.lastName }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="card-footer">
+                    <form method="POST" action="{{ path('admin_tenant_wizard_step4') }}" enctype="multipart/form-data" class="mb-0">
+                        <input type="hidden" name="_token" value="{{ csrf_token('tenant_wizard_confirm') }}">
+
+                        <div class="mb-3">
+                            <label for="signed_agreement" class="form-label fw-medium">
+                                <i class="bi bi-file-earmark-pdf me-1"></i>{{ 'wizard.signed_agreement_label'|trans({}, 'ui') }}
+                            </label>
+                            <input type="file" name="signed_agreement" id="signed_agreement"
+                                   class="form-control form-control-sm" accept=".pdf">
+                            <div class="form-text">{{ 'wizard.signed_agreement_hint'|trans({}, 'ui') }}</div>
+                        </div>
+
+                        <div class="d-flex justify-content-between">
+                            <a href="{{ path('admin_tenant_wizard_step3') }}" class="btn btn-outline-secondary">
+                                <i class="bi bi-arrow-left me-1"></i>{{ 'wizard.back'|trans({}, 'ui') }}
+                            </a>
+                            <button type="submit" class="btn btn-success">
+                                <i class="bi bi-check-lg me-1"></i>{{ 'wizard.confirm_and_create'|trans({}, 'ui') }}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

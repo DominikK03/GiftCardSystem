@@ -1,0 +1,26 @@
+C4Container
+    title C4 Container Diagram - Gift Card System
+
+    Person(tenant, "Tenant", "External API client integrating with the Gift Card System")
+    Person(admin, "Admin User", "Backoffice operator (OWNER/ADMIN/SUPPORT) managing gift cards and tenants")
+    Person(cron, "Cron Scheduler", "Automated scheduler triggering periodic tasks via CLI")
+
+    System_Ext(webhookEndpoint, "Tenant Webhook Endpoint", "Tenant's HTTP endpoint receiving domain event webhooks")
+
+    System_Boundary(giftCardSystem, "Gift Card System") {
+        Container(app, "Symfony Web Application", "FrankenPHP, PHP 8.4, Symfony 7", "Handles HTTP requests, domain logic, Event Sourcing, CQRS command/query handling, Messenger async workers")
+        ContainerDb(postgres, "PostgreSQL", "PostgreSQL 16, port 5432", "Stores events (Event Store), gift_cards_read (CQRS projections), tenants, users, tenant_webhooks, tenant_documents, messenger_messages")
+        Container(rabbitmq, "RabbitMQ", "RabbitMQ 3, ports 5672/15672", "Message broker with exchanges: gift_card_commands (direct), gift_card_events (fanout). Retry strategy with exponential backoff")
+        ContainerDb(redis, "Redis", "Redis 7, port 6379", "Application cache")
+    }
+
+    Rel(tenant, app, "REST API calls", "HTTPS/JSON, HMAC-signed")
+    Rel(admin, app, "Web Dashboard", "HTTPS, form_login")
+    Rel(cron, app, "Console commands", "CLI")
+    Rel(app, postgres, "Reads/writes events, read models, entities", "Doctrine DBAL/ORM, SQL")
+    Rel(app, rabbitmq, "Dispatches commands and domain events", "AMQP")
+    Rel(rabbitmq, app, "Delivers messages to async workers", "AMQP")
+    Rel(app, redis, "Caches data", "Redis protocol")
+    Rel(app, webhookEndpoint, "Sends event webhooks", "HTTPS/JSON, HMAC-signed")
+
+    UpdateLayoutConfig($c4ShapeInRow="3", $c4BoundaryInRow="1")

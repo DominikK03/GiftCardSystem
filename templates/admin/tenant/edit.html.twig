@@ -1,0 +1,122 @@
+{% extends 'admin/layout.html.twig' %}
+
+{% block title %}{{ 'tenant.edit_title'|trans({'%name%': tenant.name}, 'ui') }}{% endblock %}
+{% block page_title %}{{ 'tenant.edit_title'|trans({'%name%': tenant.name}, 'ui') }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        {% if errors is defined and errors|length > 0 %}
+            <div class="alert alert-danger d-flex align-items-start mb-4">
+                <i class="bi bi-exclamation-triangle-fill me-2 mt-1"></i>
+                <div>
+                    {% for error in errors %}
+                        <div>{{ error }}</div>
+                    {% endfor %}
+                </div>
+            </div>
+        {% endif %}
+
+        <form method="POST" action="{{ path('admin_tenant_edit', {id: tenant.id ~ ''}) }}">
+            <input type="hidden" name="_token" value="{{ csrf_token('tenant_edit') }}">
+
+            <div class="card">
+                {# Tabs navigation #}
+                <div class="card-header p-0" style="border-bottom:none;">
+                    <ul class="nav nav-tabs px-2 pt-2" role="tablist">
+                        <li class="nav-item">
+                            <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-basic" type="button">
+                                <i class="bi bi-person-vcard me-1"></i>{{ 'tenant.tab_basic'|trans({}, 'ui') }}
+                            </button>
+                        </li>
+                        <li class="nav-item">
+                            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-address" type="button">
+                                <i class="bi bi-geo-alt me-1"></i>{{ 'tenant.tab_address'|trans({}, 'ui') }}
+                            </button>
+                        </li>
+                        <li class="nav-item">
+                            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-representative" type="button">
+                                <i class="bi bi-person me-1"></i>{{ 'tenant.tab_representative'|trans({}, 'ui') }}
+                            </button>
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="card-body pt-4">
+                    <div class="tab-content">
+                        {# Tab: Basic info #}
+                        <div class="tab-pane fade show active" id="tab-basic">
+                            <div class="mb-3">
+                                <label for="name" class="form-label">{{ 'tenant.company_name'|trans({}, 'ui') }}</label>
+                                <input type="text" id="name" name="name" class="form-control"
+                                       value="{{ tenant.name }}" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="email" class="form-label">{{ 'tenant.email_address'|trans({}, 'ui') }}</label>
+                                <input type="email" id="email" name="email" class="form-control"
+                                       value="{{ tenant.email }}" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="phone" class="form-label">{{ 'tenant.phone_number'|trans({}, 'ui') }}</label>
+                                <input type="text" id="phone" name="phone" class="form-control"
+                                       value="{{ tenant.phoneNumber }}" required>
+                            </div>
+                        </div>
+
+                        {# Tab: Address #}
+                        <div class="tab-pane fade" id="tab-address">
+                            <div class="mb-3">
+                                <label for="street" class="form-label">{{ 'tenant.street'|trans({}, 'ui') }}</label>
+                                <input type="text" id="street" name="street" class="form-control"
+                                       value="{{ tenant.address.street }}" required>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label for="city" class="form-label">{{ 'tenant.city'|trans({}, 'ui') }}</label>
+                                    <input type="text" id="city" name="city" class="form-control"
+                                           value="{{ tenant.address.city }}" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="postalCode" class="form-label">{{ 'tenant.postal_code'|trans({}, 'ui') }}</label>
+                                    <input type="text" id="postalCode" name="postalCode" class="form-control"
+                                           value="{{ tenant.address.postalCode }}" required>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="country" class="form-label">{{ 'tenant.country'|trans({}, 'ui') }}</label>
+                                <input type="text" id="country" name="country" class="form-control"
+                                       value="{{ tenant.address.country }}" required>
+                            </div>
+                        </div>
+
+                        {# Tab: Representative #}
+                        <div class="tab-pane fade" id="tab-representative">
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label for="firstName" class="form-label">{{ 'tenant.first_name'|trans({}, 'ui') }}</label>
+                                    <input type="text" id="firstName" name="firstName" class="form-control"
+                                           value="{{ tenant.representativeName.firstName }}" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="lastName" class="form-label">{{ 'tenant.last_name'|trans({}, 'ui') }}</label>
+                                    <input type="text" id="lastName" name="lastName" class="form-control"
+                                           value="{{ tenant.representativeName.lastName }}" required>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card-footer d-flex justify-content-between">
+                    <a href="{{ path('admin_tenant_detail', {id: tenant.id ~ ''}) }}" class="btn btn-outline-secondary">
+                        <i class="bi bi-x-lg me-1"></i>{{ 'tenant.cancel'|trans({}, 'ui') }}
+                    </a>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-check-lg me-1"></i>{{ 'tenant.save_changes'|trans({}, 'ui') }}
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

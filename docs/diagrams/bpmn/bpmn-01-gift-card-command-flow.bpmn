@@ -1,0 +1,244 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" id="Defs_BPMN_01" targetNamespace="https://giftcard.local/bpmn" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI">
+  <bpmn:process id="Process_BPMN_01_GiftCardCommandFlow" name="GiftCard Command Flow (API to Async to Projection)" isExecutable="true">
+    <bpmn:laneSet id="LaneSet_01">
+      <bpmn:lane id="Lane_TenantClient" name="Tenant Client">
+        <bpmn:flowNodeRef>Start_RequestCommand</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_SendApiRequest</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_API" name="API Controller">
+        <bpmn:flowNodeRef>Task_ValidateDto</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_DtoValid</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_Return400</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_DispatchCommand</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_Return202</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_HmacAuth" name="HMAC Auth">
+        <bpmn:flowNodeRef>Task_ValidateHeadersAndSignature</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_AuthValid</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_Return401</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_Worker" name="Async Worker">
+        <bpmn:flowNodeRef>Task_ConsumeCommand</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_LoadAggregate</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_ExecuteDomainLogic</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_HandlerSuccess</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_RetryOrFail</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_EventStore" name="Event Store">
+        <bpmn:flowNodeRef>Task_AppendEvents</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_Projection" name="Projection and Read Model">
+        <bpmn:flowNodeRef>Task_PublishDomainEvents</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_UpdateReadModel</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_SendWebhook</bpmn:flowNodeRef>
+      </bpmn:lane>
+    </bpmn:laneSet>
+    <bpmn:startEvent id="Start_RequestCommand" name="Command requested"/>
+    <bpmn:task id="Task_SendApiRequest" name="Send /api/gift-cards/* request"/>
+    <bpmn:task id="Task_ValidateHeadersAndSignature" name="Validate X-Tenant-Id + timestamp + signature"/>
+    <bpmn:exclusiveGateway id="Gateway_AuthValid" name="Auth valid?"/>
+    <bpmn:task id="Task_Return401" name="Return 401 Unauthorized"/>
+    <bpmn:task id="Task_ValidateDto" name="Decode JSON and validate DTO"/>
+    <bpmn:exclusiveGateway id="Gateway_DtoValid" name="DTO valid?"/>
+    <bpmn:task id="Task_Return400" name="Return 400 Validation Error"/>
+    <bpmn:task id="Task_DispatchCommand" name="Dispatch command to Messenger"/>
+    <bpmn:task id="Task_Return202" name="Return 202 Accepted"/>
+    <bpmn:task id="Task_ConsumeCommand" name="Worker consumes command"/>
+    <bpmn:task id="Task_LoadAggregate" name="Load GiftCard aggregate with TenantContext"/>
+    <bpmn:task id="Task_ExecuteDomainLogic" name="Execute domain method and emit events"/>
+    <bpmn:exclusiveGateway id="Gateway_HandlerSuccess" name="Handler success?"/>
+    <bpmn:task id="Task_RetryOrFail" name="Retry (max 3) or move to failed transport"/>
+    <bpmn:task id="Task_AppendEvents" name="Append events to events table"/>
+    <bpmn:task id="Task_PublishDomainEvents" name="Publish domain events to async_events"/>
+    <bpmn:task id="Task_UpdateReadModel" name="Update gift_cards_read projection"/>
+    <bpmn:task id="Task_SendWebhook" name="Notify tenant webhook (if configured)"/>
+    <bpmn:endEvent id="End_Success" name="Command processed"/>
+    <bpmn:endEvent id="End_Unauthorized" name="Rejected"/>
+    <bpmn:endEvent id="End_BadRequest" name="Rejected"/>
+    <bpmn:endEvent id="End_Failed" name="Processing failed"/>
+    <bpmn:sequenceFlow id="F01" sourceRef="Start_RequestCommand" targetRef="Task_SendApiRequest"/>
+    <bpmn:sequenceFlow id="F02" sourceRef="Task_SendApiRequest" targetRef="Task_ValidateHeadersAndSignature"/>
+    <bpmn:sequenceFlow id="F03" sourceRef="Task_ValidateHeadersAndSignature" targetRef="Gateway_AuthValid"/>
+    <bpmn:sequenceFlow id="F04" sourceRef="Gateway_AuthValid" targetRef="Task_Return401" name="No"/>
+    <bpmn:sequenceFlow id="F05" sourceRef="Task_Return401" targetRef="End_Unauthorized"/>
+    <bpmn:sequenceFlow id="F06" sourceRef="Gateway_AuthValid" targetRef="Task_ValidateDto" name="Yes"/>
+    <bpmn:sequenceFlow id="F07" sourceRef="Task_ValidateDto" targetRef="Gateway_DtoValid"/>
+    <bpmn:sequenceFlow id="F08" sourceRef="Gateway_DtoValid" targetRef="Task_Return400" name="No"/>
+    <bpmn:sequenceFlow id="F09" sourceRef="Task_Return400" targetRef="End_BadRequest"/>
+    <bpmn:sequenceFlow id="F10" sourceRef="Gateway_DtoValid" targetRef="Task_DispatchCommand" name="Yes"/>
+    <bpmn:sequenceFlow id="F11" sourceRef="Task_DispatchCommand" targetRef="Task_Return202"/>
+    <bpmn:sequenceFlow id="F12" sourceRef="Task_Return202" targetRef="Task_ConsumeCommand"/>
+    <bpmn:sequenceFlow id="F13" sourceRef="Task_ConsumeCommand" targetRef="Task_LoadAggregate"/>
+    <bpmn:sequenceFlow id="F14" sourceRef="Task_LoadAggregate" targetRef="Task_ExecuteDomainLogic"/>
+    <bpmn:sequenceFlow id="F15" sourceRef="Task_ExecuteDomainLogic" targetRef="Gateway_HandlerSuccess"/>
+    <bpmn:sequenceFlow id="F16" sourceRef="Gateway_HandlerSuccess" targetRef="Task_RetryOrFail" name="No"/>
+    <bpmn:sequenceFlow id="F17" sourceRef="Task_RetryOrFail" targetRef="End_Failed"/>
+    <bpmn:sequenceFlow id="F18" sourceRef="Gateway_HandlerSuccess" targetRef="Task_AppendEvents" name="Yes"/>
+    <bpmn:sequenceFlow id="F19" sourceRef="Task_AppendEvents" targetRef="Task_PublishDomainEvents"/>
+    <bpmn:sequenceFlow id="F20" sourceRef="Task_PublishDomainEvents" targetRef="Task_UpdateReadModel"/>
+    <bpmn:sequenceFlow id="F21" sourceRef="Task_UpdateReadModel" targetRef="Task_SendWebhook"/>
+    <bpmn:sequenceFlow id="F22" sourceRef="Task_SendWebhook" targetRef="End_Success"/>
+  </bpmn:process>
+  <bpmndi:BPMNDiagram xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNDiagram_Process_BPMN_01_GiftCardCommandFlow">
+    <bpmndi:BPMNPlane id="BPMNPlane_Process_BPMN_01_GiftCardCommandFlow" bpmnElement="Process_BPMN_01_GiftCardCommandFlow">
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_Start_RequestCommand" bpmnElement="Start_RequestCommand">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="120" y="220" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_Task_SendApiRequest" bpmnElement="Task_SendApiRequest">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="290" y="220" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_Task_ValidateHeadersAndSignature" bpmnElement="Task_ValidateHeadersAndSignature">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="460" y="220" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_Gateway_AuthValid" bpmnElement="Gateway_AuthValid">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="630" y="220" width="50" height="50"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_Task_Return401" bpmnElement="Task_Return401">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="800" y="220" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_Task_ValidateDto" bpmnElement="Task_ValidateDto">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="970" y="220" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_Gateway_DtoValid" bpmnElement="Gateway_DtoValid">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="1140" y="220" width="50" height="50"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_Task_Return400" bpmnElement="Task_Return400">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="1310" y="220" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_Task_DispatchCommand" bpmnElement="Task_DispatchCommand">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="1480" y="220" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_Task_Return202" bpmnElement="Task_Return202">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="1650" y="220" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_Task_ConsumeCommand" bpmnElement="Task_ConsumeCommand">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="1820" y="220" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_Task_LoadAggregate" bpmnElement="Task_LoadAggregate">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="1990" y="220" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_Task_ExecuteDomainLogic" bpmnElement="Task_ExecuteDomainLogic">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="2160" y="220" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_Gateway_HandlerSuccess" bpmnElement="Gateway_HandlerSuccess">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="2330" y="220" width="50" height="50"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_Task_RetryOrFail" bpmnElement="Task_RetryOrFail">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="2500" y="220" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_Task_AppendEvents" bpmnElement="Task_AppendEvents">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="2670" y="220" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_Task_PublishDomainEvents" bpmnElement="Task_PublishDomainEvents">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="2840" y="220" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_Task_UpdateReadModel" bpmnElement="Task_UpdateReadModel">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="3010" y="220" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_Task_SendWebhook" bpmnElement="Task_SendWebhook">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="3180" y="220" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_End_Success" bpmnElement="End_Success">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="3350" y="220" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_End_Unauthorized" bpmnElement="End_Unauthorized">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="3520" y="220" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_End_BadRequest" bpmnElement="End_BadRequest">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="3690" y="220" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_End_Failed" bpmnElement="End_Failed">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="3860" y="220" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_F01" bpmnElement="F01">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="138" y="238"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="350" y="260"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_F02" bpmnElement="F02">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="350" y="260"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="520" y="260"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_F03" bpmnElement="F03">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="520" y="260"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="655" y="245"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_F04" bpmnElement="F04">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="655" y="245"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="860" y="260"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_F05" bpmnElement="F05">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="860" y="260"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="3538" y="238"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_F06" bpmnElement="F06">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="655" y="245"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="1030" y="260"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_F07" bpmnElement="F07">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="1030" y="260"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="1165" y="245"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_F08" bpmnElement="F08">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="1165" y="245"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="1370" y="260"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_F09" bpmnElement="F09">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="1370" y="260"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="3708" y="238"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_F10" bpmnElement="F10">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="1165" y="245"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="1540" y="260"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_F11" bpmnElement="F11">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="1540" y="260"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="1710" y="260"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_F12" bpmnElement="F12">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="1710" y="260"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="1880" y="260"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_F13" bpmnElement="F13">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="1880" y="260"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="2050" y="260"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_F14" bpmnElement="F14">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="2050" y="260"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="2220" y="260"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_F15" bpmnElement="F15">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="2220" y="260"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="2355" y="245"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_F16" bpmnElement="F16">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="2355" y="245"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="2560" y="260"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_F17" bpmnElement="F17">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="2560" y="260"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="3878" y="238"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_F18" bpmnElement="F18">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="2355" y="245"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="2730" y="260"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_F19" bpmnElement="F19">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="2730" y="260"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="2900" y="260"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_F20" bpmnElement="F20">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="2900" y="260"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="3070" y="260"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_F21" bpmnElement="F21">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="3070" y="260"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="3240" y="260"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_F22" bpmnElement="F22">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="3240" y="260"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="3368" y="238"/>
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

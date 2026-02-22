@@ -1,0 +1,171 @@
+{% extends 'admin/layout.html.twig' %}
+
+{% block title %}{{ 'user.title'|trans({}, 'ui') }}{% endblock %}
+{% block page_title %}{{ 'user.title'|trans({}, 'ui') }}{% endblock %}
+
+{% block content %}
+{# Filters #}
+<div class="card mb-4">
+    <div class="card-body py-2">
+        <form method="GET" action="{{ path('admin_user_index') }}" class="row g-2 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label mb-1" style="font-size:.75rem;">{{ 'user.role'|trans({}, 'ui') }}</label>
+                <select name="role" class="form-select form-select-sm">
+                    <option value="">{{ 'user.all_roles'|trans({}, 'ui') }}</option>
+                    {% for role in roles %}
+                        <option value="{{ role.value }}" {{ currentRole == role.value ? 'selected' : '' }}>{{ role.value }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label mb-1" style="font-size:.75rem;">{{ 'common.status'|trans({}, 'ui') }}</label>
+                <select name="status" class="form-select form-select-sm">
+                    <option value="">{{ 'user.all_statuses'|trans({}, 'ui') }}</option>
+                    <option value="active" {{ currentStatus == 'active' ? 'selected' : '' }}>{{ 'user.active'|trans({}, 'ui') }}</option>
+                    <option value="inactive" {{ currentStatus == 'inactive' ? 'selected' : '' }}>{{ 'user.inactive'|trans({}, 'ui') }}</option>
+                </select>
+            </div>
+            <div class="col-md-6 d-flex gap-2">
+                <button type="submit" class="btn btn-sm btn-primary">
+                    <i class="bi bi-funnel me-1"></i>{{ 'user.filter_button'|trans({}, 'ui') }}
+                </button>
+                <a href="{{ path('admin_user_index') }}" class="btn btn-sm btn-outline-secondary">{{ 'user.clear_button'|trans({}, 'ui') }}</a>
+                {% if is_granted('ROLE_OWNER') %}
+                    <a href="{{ path('admin_user_create') }}" class="btn btn-sm btn-success ms-auto">
+                        <i class="bi bi-person-plus me-1"></i>{{ 'user.new_user'|trans({}, 'ui') }}
+                    </a>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="d-flex justify-content-end mb-2">
+    <span class="text-slate-400" style="font-size:.8rem;">{{ 'common.results'|trans({'%count%': total}, 'ui') }}</span>
+</div>
+
+<div class="card">
+    <div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <thead>
+                <tr>
+                    <th>{{ 'common.id'|trans({}, 'ui') }}</th>
+                    <th>{{ 'common.email'|trans({}, 'ui') }}</th>
+                    <th>{{ 'user.role'|trans({}, 'ui') }}</th>
+                    <th>{{ 'common.status'|trans({}, 'ui') }}</th>
+                    <th>{{ 'common.created'|trans({}, 'ui') }}</th>
+                    {% if is_granted('ROLE_OWNER') %}
+                        <th>{{ 'common.actions'|trans({}, 'ui') }}</th>
+                    {% endif %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in users %}
+                    <tr>
+                        <td><span class="id-cell">{{ (user.id ~ '')|slice(0, 8) }}</span></td>
+                        <td class="fw-medium">{{ user.email }}</td>
+                        <td>
+                            {% set roleStyles = {
+                                'OWNER':   'background:#fef2f2;color:#991b1b;',
+                                'ADMIN':   'background:#eff6ff;color:#1e40af;',
+                                'SUPPORT': 'background:#f0fdf4;color:#166534;'
+                            } %}
+                            <span class="badge" style="{{ roleStyles[user.role.value]|default('') }}">
+                                {{ user.role.value }}
+                            </span>
+                        </td>
+                        <td>
+                            {% if user.active %}
+                                <span class="d-flex align-items-center gap-1" style="font-size:.8rem;color:#065f46;">
+                                    <span style="width:8px;height:8px;border-radius:50%;background:#10b981;display:inline-block;"></span>
+                                    {{ 'user.active'|trans({}, 'ui') }}
+                                </span>
+                            {% else %}
+                                <span class="d-flex align-items-center gap-1" style="font-size:.8rem;color:#991b1b;">
+                                    <span style="width:8px;height:8px;border-radius:50%;background:#ef4444;display:inline-block;"></span>
+                                    {{ 'user.inactive'|trans({}, 'ui') }}
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td class="text-slate-400" style="font-size:.8rem;">{{ user.createdAt|date('d.m.Y H:i') }}</td>
+                        {% if is_granted('ROLE_OWNER') %}
+                            <td>
+                                <div class="d-flex gap-1">
+                                    <a href="{{ path('admin_user_edit', {id: user.id ~ ''}) }}"
+                                       class="btn btn-sm btn-outline-primary" title="{{ 'user.edit'|trans({}, 'ui') }}">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    <form method="POST" action="{{ path('admin_user_toggle_active', {id: user.id ~ ''}) }}" class="d-inline">
+                                        <input type="hidden" name="_token" value="{{ csrf_token('user_toggle_' ~ (user.id ~ '')) }}">
+                                        {% if user.active %}
+                                            <button type="submit" class="btn btn-sm btn-outline-warning" title="{{ 'user.deactivate'|trans({}, 'ui') }}">
+                                                <i class="bi bi-pause-circle"></i>
+                                            </button>
+                                        {% else %}
+                                            <button type="submit" class="btn btn-sm btn-outline-success" title="{{ 'user.activate'|trans({}, 'ui') }}">
+                                                <i class="bi bi-play-circle"></i>
+                                            </button>
+                                        {% endif %}
+                                    </form>
+                                    <button type="button" class="btn btn-sm btn-outline-danger" title="{{ 'user.delete'|trans({}, 'ui') }}"
+                                            data-bs-toggle="modal" data-bs-target="#deleteUserModal-{{ loop.index }}">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        {% endif %}
+                    </tr>
+                {% else %}
+                    <tr>
+                        <td colspan="{{ is_granted('ROLE_OWNER') ? 6 : 5 }}">
+                            <div class="empty-state">
+                                <i class="bi bi-people d-block"></i>
+                                <p>{{ 'user.no_users'|trans({}, 'ui') }}</p>
+                            </div>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{# Delete confirmation modals #}
+{% if is_granted('ROLE_OWNER') %}
+    {% for user in users %}
+        {% include 'admin/components/_confirm_modal.html.twig' with {
+            modal_id: 'deleteUserModal-' ~ loop.index,
+            title: 'user.delete_confirm_title'|trans({}, 'ui'),
+            message: 'user.delete_confirm'|trans({}, 'ui'),
+            action_url: path('admin_user_delete', {id: user.id ~ ''}),
+            csrf_token_value: csrf_token('user_delete_' ~ (user.id ~ '')),
+            button_label: 'user.delete'|trans({}, 'ui'),
+            button_class: 'btn btn-danger'
+        } %}
+    {% endfor %}
+{% endif %}
+
+{# Pagination #}
+{% if totalPages > 1 %}
+    <nav class="mt-4 d-flex justify-content-center">
+        <ul class="pagination mb-0">
+            {% set filterParams = {role: currentRole, status: currentStatus} %}
+            <li class="page-item {{ currentPage <= 1 ? 'disabled' : '' }}">
+                <a class="page-link" href="{{ path('admin_user_index', filterParams|merge({page: currentPage - 1})) }}">
+                    <i class="bi bi-chevron-left"></i>
+                </a>
+            </li>
+            {% for p in 1..totalPages %}
+                <li class="page-item {{ p == currentPage ? 'active' : '' }}">
+                    <a class="page-link" href="{{ path('admin_user_index', filterParams|merge({page: p})) }}">{{ p }}</a>
+                </li>
+            {% endfor %}
+            <li class="page-item {{ currentPage >= totalPages ? 'disabled' : '' }}">
+                <a class="page-link" href="{{ path('admin_user_index', filterParams|merge({page: currentPage + 1})) }}">
+                    <i class="bi bi-chevron-right"></i>
+                </a>
+            </li>
+        </ul>
+    </nav>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,17 @@
+C4Context
+    title System Context Diagram - Gift Card System (Level 1)
+
+    Person(tenant, "Tenant", "External API client (business partner). Manages gift cards via HMAC-authenticated REST API.")
+    Person(admin, "Admin User", "Backoffice operator (OWNER/ADMIN/SUPPORT). Manages system via web dashboard.")
+    Person(cron, "Cron Scheduler", "Automated scheduler for periodic tasks like gift card expiration.")
+
+    System(giftCardSystem, "Gift Card System", "Multi-tenant gift card lifecycle management with Event Sourcing, CQRS, and async messaging. Built with PHP 8.4, Symfony 7, FrankenPHP.")
+
+    System_Ext(webhookEndpoint, "Tenant Webhook Endpoint", "Tenant's external HTTP endpoint that receives event notifications via HMAC-signed webhooks.")
+
+    Rel(tenant, giftCardSystem, "Manages gift cards", "REST API, HTTPS/JSON, HMAC-signed")
+    Rel(admin, giftCardSystem, "Manages system", "Web Dashboard, HTTPS, form_login")
+    Rel(cron, giftCardSystem, "Runs periodic tasks", "CLI commands")
+    Rel(giftCardSystem, webhookEndpoint, "Sends event notifications", "HTTPS/JSON, HMAC-signed webhooks")
+
+    UpdateLayoutConfig($c4ShapeInRow="3", $c4BoundaryInRow="1")

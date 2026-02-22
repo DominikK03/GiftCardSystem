@@ -1,0 +1,82 @@
+---
+services:
+  php:
+    image: ${IMAGES_PREFIX:-}app-php
+    restart: "no"
+    environment:
+      SERVER_NAME: ${SERVER_NAME:-http://localhost}, php:80
+      MERCURE_PUBLISHER_JWT_KEY: ${CADDY_MERCURE_JWT_SECRET:-secret321secret321secret321secret321}
+      MERCURE_SUBSCRIBER_JWT_KEY: ${CADDY_MERCURE_JWT_SECRET:-secret321secret321secret321secret321}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-app}:${POSTGRES_PASSWORD:-secret321}@database:5432/${POSTGRES_DB:-app}?serverVersion=${POSTGRES_VERSION:-16}&charset=${POSTGRES_CHARSET:-utf8}
+      MERCURE_URL: ${CADDY_MERCURE_URL:-http://php/.well-known/mercure}
+      MERCURE_PUBLIC_URL: ${CADDY_MERCURE_PUBLIC_URL:-https://${SERVER_NAME:-localhost}:${HTTPS_PORT:-443}/.well-known/mercure}
+      MERCURE_JWT_SECRET: ${CADDY_MERCURE_JWT_SECRET:-secret321secret321secret321secret321}
+      REDIS_URL: redis://redis:6379
+      RABBITMQ_URL: amqp://${RABBITMQ_DEFAULT_USER:-app}:${RABBITMQ_DEFAULT_PASS:-secret321}@rabbitmq:5672/${RABBITMQ_DEFAULT_VHOST:-app}
+      SYMFONY_VERSION: ${SYMFONY_VERSION:-}
+      STABILITY: ${STABILITY:-stable}
+    volumes:
+      - caddy_data:/data
+      - caddy_config:/config
+      - document_storage:/app/var/storage
+    depends_on:
+      - database
+      - redis
+      - rabbitmq
+    ports:
+      - target: 80
+        published: ${HTTP_PORT:-80}
+        protocol: tcp
+      - target: 443
+        published: ${HTTPS_PORT:-443}
+        protocol: tcp
+      - target: 443
+        published: ${HTTP3_PORT:-443}
+        protocol: udp
+
+  database:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-app}
+      POSTGRES_USER: ${POSTGRES_USER:-app}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-secret321}
+    volumes:
+      - database_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER:-app}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS:-secret321}
+      RABBITMQ_DEFAULT_VHOST: ${RABBITMQ_DEFAULT_VHOST:-app}
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+
+  node:
+    image: node:20-bullseye
+    working_dir: /app
+    command: ["bash", "-lc", "tail -f /dev/null"]
+    volumes:
+      - ./:/app
+    depends_on:
+      - php
+
+volumes:
+  caddy_data:
+  caddy_config:
+  database_data:
+  rabbitmq_data:
+  document_storage:

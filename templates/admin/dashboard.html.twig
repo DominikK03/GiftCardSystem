@@ -1,0 +1,210 @@
+{% extends 'admin/layout.html.twig' %}
+
+{% block title %}{{ 'dashboard.title'|trans({}, 'ui') }}{% endblock %}
+{% block page_title %}{{ 'dashboard.title'|trans({}, 'ui') }}{% endblock %}
+
+{% block body_data %}data-mercure-topics="/dashboard"{% endblock %}
+
+{% block content %}
+{# ── Row 1: Tenants / Gift Cards / Users ── #}
+<div class="row g-4 mb-4">
+    {# Tenants #}
+    <div class="col-md-4">
+        <div class="card stat-card h-100" style="border-left-color: #3b82f6;">
+            <div class="card-body">
+                <div class="d-flex align-items-start justify-content-between mb-3">
+                    <div>
+                        <div class="stat-label mb-1">{{ 'dashboard.tenants'|trans({}, 'ui') }}</div>
+                        <div class="stat-value">{{ stats.tenants.total|default(0) }}</div>
+                    </div>
+                    <div class="stat-icon" style="background: #eff6ff; color: #3b82f6;">
+                        <i class="bi bi-building-fill"></i>
+                    </div>
+                </div>
+                <div class="d-flex gap-3" style="font-size:.8rem;">
+                    {% if stats.tenants.ACTIVE is defined %}
+                        <span class="d-flex align-items-center gap-1">
+                            <span style="width:8px;height:8px;border-radius:50%;background:#10b981;display:inline-block;"></span>
+                            {{ stats.tenants.ACTIVE }} {{ 'dashboard.active'|trans({}, 'ui') }}
+                        </span>
+                    {% endif %}
+                    {% if stats.tenants.SUSPENDED is defined %}
+                        <span class="d-flex align-items-center gap-1">
+                            <span style="width:8px;height:8px;border-radius:50%;background:#f59e0b;display:inline-block;"></span>
+                            {{ stats.tenants.SUSPENDED }} {{ 'dashboard.suspended'|trans({}, 'ui') }}
+                        </span>
+                    {% endif %}
+                    {% if stats.tenants.CANCELLED is defined %}
+                        <span class="d-flex align-items-center gap-1">
+                            <span style="width:8px;height:8px;border-radius:50%;background:#ef4444;display:inline-block;"></span>
+                            {{ stats.tenants.CANCELLED }} {{ 'dashboard.cancelled'|trans({}, 'ui') }}
+                        </span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {# Gift Cards #}
+    <div class="col-md-4">
+        <div class="card stat-card h-100" style="border-left-color: #10b981;">
+            <div class="card-body">
+                <div class="d-flex align-items-start justify-content-between mb-3">
+                    <div>
+                        <div class="stat-label mb-1">{{ 'dashboard.gift_cards'|trans({}, 'ui') }}</div>
+                        <div class="stat-value">{{ stats.giftCards.total|default(0) }}</div>
+                    </div>
+                    <div class="stat-icon" style="background: #ecfdf5; color: #10b981;">
+                        <i class="bi bi-credit-card-2-front-fill"></i>
+                    </div>
+                </div>
+                <div class="d-flex gap-3 flex-wrap" style="font-size:.8rem;">
+                    {% if stats.giftCards.ACTIVE is defined %}
+                        <span class="d-flex align-items-center gap-1">
+                            <span style="width:8px;height:8px;border-radius:50%;background:#10b981;display:inline-block;"></span>
+                            {{ stats.giftCards.ACTIVE }} {{ 'dashboard.active'|trans({}, 'ui') }}
+                        </span>
+                    {% endif %}
+                    {% if stats.giftCards.INACTIVE is defined %}
+                        <span class="d-flex align-items-center gap-1">
+                            <span style="width:8px;height:8px;border-radius:50%;background:#94a3b8;display:inline-block;"></span>
+                            {{ stats.giftCards.INACTIVE }} {{ 'dashboard.inactive'|trans({}, 'ui') }}
+                        </span>
+                    {% endif %}
+                    {% if stats.giftCards.EXPIRED is defined %}
+                        <span class="d-flex align-items-center gap-1">
+                            <span style="width:8px;height:8px;border-radius:50%;background:#f59e0b;display:inline-block;"></span>
+                            {{ stats.giftCards.EXPIRED }} {{ 'dashboard.expired'|trans({}, 'ui') }}
+                        </span>
+                    {% endif %}
+                    {% if stats.giftCards.DEPLETED is defined %}
+                        <span class="d-flex align-items-center gap-1">
+                            <span style="width:8px;height:8px;border-radius:50%;background:#ef4444;display:inline-block;"></span>
+                            {{ stats.giftCards.DEPLETED }} {{ 'dashboard.depleted'|trans({}, 'ui') }}
+                        </span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {# Users #}
+    <div class="col-md-4">
+        <div class="card stat-card h-100" style="border-left-color: #06b6d4;">
+            <div class="card-body">
+                <div class="d-flex align-items-start justify-content-between mb-3">
+                    <div>
+                        <div class="stat-label mb-1">{{ 'dashboard.users'|trans({}, 'ui') }}</div>
+                        <div class="stat-value">{{ stats.users.total|default(0) }}</div>
+                    </div>
+                    <div class="stat-icon" style="background: #ecfeff; color: #06b6d4;">
+                        <i class="bi bi-people-fill"></i>
+                    </div>
+                </div>
+                <div class="d-flex gap-3" style="font-size:.8rem;">
+                    <span class="d-flex align-items-center gap-1">
+                        <span style="width:8px;height:8px;border-radius:50%;background:#10b981;display:inline-block;"></span>
+                        {{ stats.users.active|default(0) }} {{ 'dashboard.active'|trans({}, 'ui') }}
+                    </span>
+                    <span class="d-flex align-items-center gap-1">
+                        <span style="width:8px;height:8px;border-radius:50%;background:#ef4444;display:inline-block;"></span>
+                        {{ stats.users.inactive|default(0) }} {{ 'dashboard.inactive'|trans({}, 'ui') }}
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{# ── Row 2: Financial stats ── #}
+<div class="row g-4 mb-4">
+    {# Total Balance #}
+    <div class="col-md-3">
+        <div class="card stat-card h-100" style="border-left-color: #8b5cf6;">
+            <div class="card-body">
+                <div class="d-flex align-items-start justify-content-between mb-2">
+                    <div>
+                        <div class="stat-label mb-1">{{ 'dashboard.total_balance'|trans({}, 'ui') }}</div>
+                        <div class="stat-value">
+                            {% for balance in stats.totalBalance %}
+                                {{ (balance.total / 100)|number_format(2, ',', ' ') }} {{ balance.currency }}
+                                {% if not loop.last %}<br>{% endif %}
+                            {% else %}
+                                0,00
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <div class="stat-icon" style="background: #f5f3ff; color: #8b5cf6;">
+                        <i class="bi bi-wallet-fill"></i>
+                    </div>
+                </div>
+                <div style="font-size:.75rem;color:#64748b;">{{ 'dashboard.active_cards_balance'|trans({}, 'ui') }}</div>
+            </div>
+        </div>
+    </div>
+
+    {# Total Redeemed #}
+    <div class="col-md-3">
+        <div class="card stat-card h-100" style="border-left-color: #f97316;">
+            <div class="card-body">
+                <div class="d-flex align-items-start justify-content-between mb-2">
+                    <div>
+                        <div class="stat-label mb-1">{{ 'dashboard.total_redeemed'|trans({}, 'ui') }}</div>
+                        <div class="stat-value">
+                            {% for redeemed in stats.totalRedeemed %}
+                                {{ (redeemed.total / 100)|number_format(2, ',', ' ') }} {{ redeemed.currency }}
+                                {% if not loop.last %}<br>{% endif %}
+                            {% else %}
+                                0,00
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <div class="stat-icon" style="background: #fff7ed; color: #f97316;">
+                        <i class="bi bi-cash-stack"></i>
+                    </div>
+                </div>
+                <div style="font-size:.75rem;color:#64748b;">{{ 'dashboard.total_amount_used'|trans({}, 'ui') }}</div>
+            </div>
+        </div>
+    </div>
+
+    {# Invoices this month #}
+    <div class="col-md-3">
+        <div class="card stat-card h-100" style="border-left-color: #6366f1;">
+            <div class="card-body">
+                <div class="d-flex align-items-start justify-content-between mb-2">
+                    <div>
+                        <div class="stat-label mb-1">{{ 'dashboard.invoices'|trans({}, 'ui') }}</div>
+                        <div class="stat-value">{{ stats.invoicesThisMonth|default(0) }}</div>
+                    </div>
+                    <div class="stat-icon" style="background: #eef2ff; color: #6366f1;">
+                        <i class="bi bi-receipt"></i>
+                    </div>
+                </div>
+                <div style="font-size:.75rem;color:#64748b;">{{ 'dashboard.this_month'|trans({}, 'ui') }}</div>
+            </div>
+        </div>
+    </div>
+
+    {# Expiring soon #}
+    <div class="col-md-3">
+        <div class="card stat-card h-100" style="border-left-color: #eab308;">
+            <div class="card-body">
+                <div class="d-flex align-items-start justify-content-between mb-2">
+                    <div>
+                        <div class="stat-label mb-1">{{ 'dashboard.expiring_soon'|trans({}, 'ui') }}</div>
+                        <div class="stat-value">{{ stats.expiringSoon|default(0) }}</div>
+                    </div>
+                    <div class="stat-icon" style="background: #fefce8; color: #eab308;">
+                        <i class="bi bi-exclamation-triangle-fill"></i>
+                    </div>
+                </div>
+                <div style="font-size:.75rem;color:#64748b;">{{ 'dashboard.within_30_days'|trans({}, 'ui') }}</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{# ── Row 3: Chart + Recent Activity + Top Tenants ── #}
+{% include 'admin/dashboard/_charts.html.twig' %}
+{% endblock %}

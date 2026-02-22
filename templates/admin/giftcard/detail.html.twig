@@ -1,0 +1,177 @@
+{% extends 'admin/layout.html.twig' %}
+
+{% block title %}{{ 'giftcard.detail_title'|trans({'%id%': gc.id|slice(0, 8)}, 'ui') }}{% endblock %}
+{% block page_title %}{{ 'giftcard.detail_title'|trans({'%id%': gc.id|slice(0, 8)}, 'ui') }}{% endblock %}
+
+{% block body_data %}data-mercure-topics="/giftcards/{{ gc.id }}"{% endblock %}
+
+{% block content %}
+{% set statusStyles = {
+    'inactive': 'background:#f1f5f9;color:#64748b;',
+    'active':   'background:#ecfdf5;color:#065f46;',
+    'expired':  'background:#fffbeb;color:#92400e;',
+    'depleted': 'background:#fef2f2;color:#991b1b;',
+    'cancelled':'background:#fef2f2;color:#991b1b;',
+    'suspended':'background:#fffbeb;color:#92400e;'
+} %}
+
+<div class="row g-4">
+    {# Main info #}
+    <div class="col-lg-8">
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-credit-card me-2"></i>{{ 'giftcard.detail_heading'|trans({}, 'ui') }}</span>
+                <span class="badge" style="{{ statusStyles[gc.status]|default('') }}">{{ ('status.' ~ gc.status)|trans({}, 'ui') }}</span>
+            </div>
+            <div class="card-body p-0">
+                <table class="table mb-0" style="border-collapse:separate;">
+                    <tbody>
+                        <tr>
+                            <td class="text-slate-400 fw-medium" style="width:180px;padding-left:20px;">{{ 'common.id'|trans({}, 'ui') }}</td>
+                            <td><span class="id-cell" style="font-size:.8rem;">{{ gc.id }}</span></td>
+                        </tr>
+                        {% if gc.cardNumber %}
+                        <tr>
+                            <td class="text-slate-400 fw-medium" style="padding-left:20px;">{{ 'giftcard.card_number'|trans({}, 'ui') }}</td>
+                            <td><code style="font-size:.9rem; letter-spacing:2px;">{{ gc.cardNumber[:4] }}-{{ gc.cardNumber[4:4] }}-{{ gc.cardNumber[8:] }}</code></td>
+                        </tr>
+                        {% endif %}
+                        {% if gc.pin %}
+                        <tr>
+                            <td class="text-slate-400 fw-medium" style="padding-left:20px;">{{ 'giftcard.pin'|trans({}, 'ui') }}</td>
+                            <td><code style="font-size:.9rem;">{{ gc.pin }}</code></td>
+                        </tr>
+                        {% endif %}
+                        <tr>
+                            <td class="text-slate-400 fw-medium" style="padding-left:20px;">{{ 'giftcard.tenant'|trans({}, 'ui') }}</td>
+                            <td>
+                                {% if tenant %}
+                                    <a href="{{ path('admin_tenant_detail', {id: gc.tenantId}) }}">{{ tenant.name }}</a>
+                                {% else %}
+                                    <span class="id-cell">{{ gc.tenantId|slice(0, 8) }}</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="text-slate-400 fw-medium" style="padding-left:20px;">{{ 'common.balance'|trans({}, 'ui') }}</td>
+                            <td class="fw-medium">
+                                {{ (gc.balanceAmount / 100)|number_format(2, ',', ' ') }}
+                                <span class="text-slate-400">{{ gc.balanceCurrency }}</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="text-slate-400 fw-medium" style="padding-left:20px;">{{ 'giftcard.initial_amount'|trans({}, 'ui') }}</td>
+                            <td>
+                                {{ (gc.initialAmount / 100)|number_format(2, ',', ' ') }}
+                                <span class="text-slate-400">{{ gc.initialCurrency }}</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="text-slate-400 fw-medium" style="padding-left:20px;">{{ 'giftcard.expires'|trans({}, 'ui') }}</td>
+                            <td>{{ gc.expiresAt ? gc.expiresAt|date('d.m.Y H:i') : '—' }}</td>
+                        </tr>
+                        <tr>
+                            <td class="text-slate-400 fw-medium" style="padding-left:20px;">{{ 'common.created'|trans({}, 'ui') }}</td>
+                            <td style="font-size:.85rem;">{{ gc.createdAt|date('d.m.Y H:i') }}</td>
+                        </tr>
+                        {% if gc.activatedAt %}
+                        <tr>
+                            <td class="text-slate-400 fw-medium" style="padding-left:20px;">{{ 'giftcard.activated_at'|trans({}, 'ui') }}</td>
+                            <td style="font-size:.85rem;">{{ gc.activatedAt|date('d.m.Y H:i') }}</td>
+                        </tr>
+                        {% endif %}
+                        {% if gc.suspendedAt %}
+                        <tr>
+                            <td class="text-slate-400 fw-medium" style="padding-left:20px;">{{ 'giftcard.suspended_at'|trans({}, 'ui') }}</td>
+                            <td style="font-size:.85rem;">{{ gc.suspendedAt|date('d.m.Y H:i') }}</td>
+                        </tr>
+                        {% endif %}
+                        {% if gc.cancelledAt %}
+                        <tr>
+                            <td class="text-slate-400 fw-medium" style="padding-left:20px;">{{ 'giftcard.cancelled_at'|trans({}, 'ui') }}</td>
+                            <td style="font-size:.85rem;">{{ gc.cancelledAt|date('d.m.Y H:i') }}</td>
+                        </tr>
+                        {% endif %}
+                        {% if gc.expiredAt %}
+                        <tr>
+                            <td class="text-slate-400 fw-medium" style="padding-left:20px;">{{ 'giftcard.expired_at'|trans({}, 'ui') }}</td>
+                            <td style="font-size:.85rem;">{{ gc.expiredAt|date('d.m.Y H:i') }}</td>
+                        </tr>
+                        {% endif %}
+                        {% if gc.depletedAt %}
+                        <tr>
+                            <td class="text-slate-400 fw-medium" style="padding-left:20px;">{{ 'giftcard.depleted_at'|trans({}, 'ui') }}</td>
+                            <td style="font-size:.85rem;">{{ gc.depletedAt|date('d.m.Y H:i') }}</td>
+                        </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    {# Actions sidebar #}
+    <div class="col-lg-4">
+        <div class="card mb-3">
+            <div class="card-header"><i class="bi bi-lightning me-2"></i>{{ 'common.actions'|trans({}, 'ui') }}</div>
+            <div class="card-body d-grid gap-2">
+                {% if is_granted('ROLE_OWNER') %}
+                    {% if gc.status == 'inactive' %}
+                        <form method="POST" action="{{ path('admin_giftcard_activate', {id: gc.id}) }}">
+                            <input type="hidden" name="_token" value="{{ csrf_token('gc_activate_' ~ gc.id) }}">
+                            <button type="submit" class="btn btn-success w-100">
+                                <i class="bi bi-play-circle me-2"></i>{{ 'giftcard.action_activate'|trans({}, 'ui') }}
+                            </button>
+                        </form>
+                    {% endif %}
+
+                    {% if gc.status == 'active' %}
+                        <form method="POST" action="{{ path('admin_giftcard_suspend', {id: gc.id}) }}">
+                            <input type="hidden" name="_token" value="{{ csrf_token('gc_suspend_' ~ gc.id) }}">
+                            <button type="submit" class="btn btn-warning w-100">
+                                <i class="bi bi-pause-circle me-2"></i>{{ 'giftcard.action_suspend'|trans({}, 'ui') }}
+                            </button>
+                        </form>
+                    {% endif %}
+
+                    {% if gc.status == 'suspended' %}
+                        <form method="POST" action="{{ path('admin_giftcard_reactivate', {id: gc.id}) }}">
+                            <input type="hidden" name="_token" value="{{ csrf_token('gc_reactivate_' ~ gc.id) }}">
+                            <button type="submit" class="btn btn-success w-100">
+                                <i class="bi bi-arrow-counterclockwise me-2"></i>{{ 'giftcard.action_reactivate'|trans({}, 'ui') }}
+                            </button>
+                        </form>
+                    {% endif %}
+
+                    {% if gc.status in ['active', 'suspended'] %}
+                        <button type="button" class="btn btn-outline-danger w-100" data-bs-toggle="modal" data-bs-target="#cancelGiftCardModal">
+                            <i class="bi bi-x-circle me-2"></i>{{ 'giftcard.action_cancel'|trans({}, 'ui') }}
+                        </button>
+                    {% endif %}
+                {% endif %}
+
+                <a href="{{ path('admin_giftcard_index') }}" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left me-2"></i>{{ 'giftcard.back_to_list'|trans({}, 'ui') }}
+                </a>
+            </div>
+        </div>
+
+        {% include 'admin/giftcard/_qr_code.html.twig' %}
+    </div>
+</div>
+
+{% include 'admin/giftcard/_timeline.html.twig' %}
+
+{# Cancel confirmation modal #}
+{% if gc.status in ['active', 'suspended'] %}
+    {% include 'admin/components/_confirm_modal.html.twig' with {
+        modal_id: 'cancelGiftCardModal',
+        title: 'giftcard.cancel_confirm_title'|trans({}, 'ui'),
+        message: 'giftcard.cancel_confirm'|trans({}, 'ui'),
+        action_url: path('admin_giftcard_cancel', {id: gc.id}),
+        csrf_token_value: csrf_token('gc_cancel_' ~ gc.id),
+        button_label: 'giftcard.action_cancel'|trans({}, 'ui'),
+        button_class: 'btn btn-danger'
+    } %}
+{% endif %}
+{% endblock %}

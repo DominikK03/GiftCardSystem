@@ -1,0 +1,117 @@
+{% extends 'admin/layout.html.twig' %}
+
+{% block title %}{{ 'tenant.title'|trans({}, 'ui') }}{% endblock %}
+{% block page_title %}{{ 'tenant.title'|trans({}, 'ui') }}{% endblock %}
+
+{% block content %}
+{# Toolbar: filters + new tenant button #}
+<div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
+    <div class="d-flex flex-wrap align-items-center gap-3">
+        {# Status filter pills #}
+        <div class="filter-pills">
+            <a href="{{ path('admin_tenant_index', {name: currentName, nip: currentNip}) }}"
+               class="filter-pill {{ currentStatus == '' ? 'active' : '' }}">{{ 'tenant.all'|trans({}, 'ui') }}</a>
+            {% for status in statuses %}
+                <a href="{{ path('admin_tenant_index', {status: status.value, name: currentName, nip: currentNip}) }}"
+                   class="filter-pill {{ currentStatus == status.value ? 'active' : '' }}">
+                    {{ status.value }}
+                </a>
+            {% endfor %}
+        </div>
+
+        {# Search filters #}
+        <form method="GET" action="{{ path('admin_tenant_index') }}" class="d-flex gap-2 align-items-center">
+            {% if currentStatus %}<input type="hidden" name="status" value="{{ currentStatus }}">{% endif %}
+            <input type="text" name="name" value="{{ currentName }}" placeholder="{{ 'tenant.name_placeholder'|trans({}, 'ui') }}" class="form-control form-control-sm" style="width:160px;">
+            <input type="text" name="nip" value="{{ currentNip }}" placeholder="{{ 'tenant.nip_placeholder'|trans({}, 'ui') }}" class="form-control form-control-sm" style="width:140px;">
+            <button type="submit" class="btn btn-sm btn-outline-primary">
+                <i class="bi bi-search"></i>
+            </button>
+            {% if currentName or currentNip %}
+                <a href="{{ path('admin_tenant_index', {status: currentStatus}) }}" class="btn btn-sm btn-outline-secondary" title="{{ 'tenant.clear_search'|trans({}, 'ui') }}">
+                    <i class="bi bi-x-lg"></i>
+                </a>
+            {% endif %}
+        </form>
+    </div>
+
+    <a href="{{ path('admin_tenant_wizard_step1') }}" class="btn btn-sm btn-primary">
+        <i class="bi bi-plus-lg me-1"></i>{{ 'tenant.new_tenant'|trans({}, 'ui') }}
+    </a>
+</div>
+
+<div class="card">
+    <div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <thead>
+                <tr>
+                    <th>{{ 'common.id'|trans({}, 'ui') }}</th>
+                    <th>{{ 'common.name'|trans({}, 'ui') }}</th>
+                    <th>{{ 'common.email'|trans({}, 'ui') }}</th>
+                    <th>{{ 'tenant.tax_id'|trans({}, 'ui') }}</th>
+                    <th>{{ 'common.status'|trans({}, 'ui') }}</th>
+                    <th>{{ 'common.created'|trans({}, 'ui') }}</th>
+                    <th style="width:100px;">{{ 'common.actions'|trans({}, 'ui') }}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for tenant in tenants %}
+                    <tr>
+                        <td><span class="id-cell">{{ (tenant.id ~ '')|slice(0, 8) }}</span></td>
+                        <td class="fw-medium">{{ tenant.name }}</td>
+                        <td>{{ tenant.email }}</td>
+                        <td>{{ tenant.nip }}</td>
+                        <td>
+                            {% if tenant.status.value == 'ACTIVE' %}
+                                <span class="badge" style="background:#ecfdf5;color:#065f46;">ACTIVE</span>
+                            {% elseif tenant.status.value == 'SUSPENDED' %}
+                                <span class="badge" style="background:#fffbeb;color:#92400e;">SUSPENDED</span>
+                            {% elseif tenant.status.value == 'CANCELLED' %}
+                                <span class="badge" style="background:#fef2f2;color:#991b1b;">CANCELLED</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-slate-400" style="font-size:.8rem;">{{ tenant.createdAt|date('d.m.Y H:i') }}</td>
+                        <td>
+                            <div class="d-flex gap-1">
+                                <a href="{{ path('admin_tenant_detail', {id: tenant.id ~ ''}) }}"
+                                   class="action-btn" title="{{ 'tenant.view'|trans({}, 'ui') }}">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                                <a href="{{ path('admin_tenant_edit', {id: tenant.id ~ ''}) }}"
+                                   class="action-btn" title="{{ 'tenant.edit'|trans({}, 'ui') }}">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                {% if is_granted('ROLE_OWNER') and tenant.status.value == 'ACTIVE' %}
+                                    <form method="POST" action="{{ path('admin_tenant_suspend', {id: tenant.id ~ ''}) }}" style="display:inline;">
+                                        <input type="hidden" name="_token" value="{{ csrf_token('tenant_suspend_' ~ (tenant.id ~ '')) }}">
+                                        <button type="submit" class="action-btn text-warning" title="{{ 'tenant.action_suspend'|trans({}, 'ui') }}">
+                                            <i class="bi bi-pause-circle"></i>
+                                        </button>
+                                    </form>
+                                {% endif %}
+                                {% if is_granted('ROLE_OWNER') and tenant.status.value == 'SUSPENDED' %}
+                                    <form method="POST" action="{{ path('admin_tenant_reactivate', {id: tenant.id ~ ''}) }}" style="display:inline;">
+                                        <input type="hidden" name="_token" value="{{ csrf_token('tenant_reactivate_' ~ (tenant.id ~ '')) }}">
+                                        <button type="submit" class="action-btn text-success" title="{{ 'tenant.action_reactivate'|trans({}, 'ui') }}">
+                                            <i class="bi bi-play-circle"></i>
+                                        </button>
+                                    </form>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                {% else %}
+                    <tr>
+                        <td colspan="7">
+                            <div class="empty-state">
+                                <i class="bi bi-building d-block"></i>
+                                <p>{{ 'tenant.no_tenants'|trans({}, 'ui') }}</p>
+                            </div>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

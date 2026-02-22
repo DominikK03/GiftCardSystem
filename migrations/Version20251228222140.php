@@ -1,0 +1,37 @@
+<?php
+
+declare(strict_types=1);
+
+namespace DoctrineMigrations;
+
+use Doctrine\DBAL\Schema\Schema;
+use Doctrine\Migrations\AbstractMigration;
+
+/**
+ * Auto-generated Migration: Please modify to your needs!
+ */
+final class Version20251228222140 extends AbstractMigration
+{
+    public function getDescription(): string
+    {
+        return '';
+    }
+
+    public function up(Schema $schema): void
+    {
+        // this up() migration is auto-generated, please modify it to your needs
+        $this->addSql('DROP SEQUENCE IF EXISTS events_id_seq CASCADE');
+        $this->addSql('DROP TABLE IF EXISTS events');
+        $this->addSql('ALTER TABLE gift_cards_read ADD COLUMN IF NOT EXISTS tenant_id VARCHAR(36) NOT NULL');
+    }
+
+    public function down(Schema $schema): void
+    {
+        // this down() migration is auto-generated, please modify it to your needs
+        $this->addSql('CREATE SCHEMA public');
+        $this->addSql('CREATE SEQUENCE events_id_seq INCREMENT BY 1 MINVALUE 1 START 1');
+        $this->addSql('CREATE TABLE events (id SERIAL NOT NULL, uuid UUID NOT NULL, playhead INT NOT NULL, metadata JSON NOT NULL, payload JSON NOT NULL, recorded_on TIMESTAMP(0) WITHOUT TIME ZONE NOT NULL, type VARCHAR(255) NOT NULL, PRIMARY KEY(id))');
+        $this->addSql('CREATE UNIQUE INDEX unique_uuid_playhead ON events (uuid, playhead)');
+        $this->addSql('ALTER TABLE gift_cards_read DROP tenant_id');
+    }
+}

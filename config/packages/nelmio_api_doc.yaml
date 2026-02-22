@@ -1,0 +1,72 @@
+nelmio_api_doc:
+    documentation:
+        info:
+            title: Gift Card API
+            version: 1.0.0
+            description: |
+                Event Sourced Gift Card Management System
+
+                ## Architecture
+                - **CQRS + Event Sourcing** for Gift Cards
+                - **Asynchronous processing** via RabbitMQ for Gift Card commands
+                - **Multi-tenancy** with Row-Level Security
+                - **RBAC** for backoffice users (OWNER/ADMIN/SUPPORT)
+
+                ## Authentication
+                - **Tenants:** HMAC-based authentication (API Key + Secret)
+                - **Backoffice Users:** Standard authentication (to be implemented)
+
+                **Note:** Gift Card commands return 202 Accepted and are processed asynchronously by workers.
+        servers:
+            - url: https://localhost
+              description: Local development server
+        tags:
+            - name: Users
+              description: 'Backoffice user management (RBAC: OWNER/ADMIN/SUPPORT)'
+            - name: Tenants
+              description: 'Tenant (contractor) management with multi-tenancy support'
+            - name: Gift Cards
+              description: 'Gift Card operations (Event Sourced, asynchronous)'
+        components:
+            securitySchemes:
+                TenantId:
+                    type: apiKey
+                    in: header
+                    name: X-Tenant-Id
+                    description: 'Tenant UUID identifier'
+                TenantTimestamp:
+                    type: apiKey
+                    in: header
+                    name: X-Timestamp
+                    description: 'Unix timestamp (max 5 min age)'
+                TenantSignature:
+                    type: apiKey
+                    in: header
+                    name: X-Signature
+                    description: 'HMAC-SHA256 signature = hash_hmac("sha256", tenantId + timestamp + requestBody, apiSecret)'
+            schemas:
+                Error:
+                    type: object
+                    properties:
+                        error:
+                            type: string
+                            example: "Invalid request"
+                ValidationError:
+                    type: object
+                    properties:
+                        error:
+                            type: string
+                            example: "Validation failed"
+                        violations:
+                            type: array
+                            items:
+                                type: object
+                                properties:
+                                    field:
+                                        type: string
+                                    message:
+                                        type: string
+    areas:
+        default:
+            path_patterns:
+                - ^/api(?!/doc$)

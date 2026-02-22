@@ -1,0 +1,67 @@
+{# Event Timeline - replaces event history table #}
+{% if history and history.history|length > 0 %}
+<div class="card mt-2" id="event-timeline-card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-clock-history me-2"></i>{{ 'giftcard.event_history'|trans({}, 'ui') }}</span>
+        <span class="badge" style="background:#f1f5f9;color:#64748b;">{{ history.history|length }} {{ 'giftcard.events'|trans({}, 'ui') }}</span>
+    </div>
+    <div class="card-body">
+        <div class="timeline">
+            {% for item in history.history|reverse %}
+                {% set eventColors = {
+                    'GiftCardCreated': '#3b82f6',
+                    'GiftCardActivated': '#10b981',
+                    'GiftCardRedeemed': '#06b6d4',
+                    'GiftCardDepleted': '#ef4444',
+                    'GiftCardSuspended': '#f97316',
+                    'GiftCardReactivated': '#10b981',
+                    'GiftCardCancelled': '#ef4444',
+                    'GiftCardExpired': '#eab308',
+                    'GiftCardBalanceAdjusted': '#8b5cf6',
+                    'GiftCardBalanceDecreased': '#ef4444'
+                } %}
+                {% set eventIcons = {
+                    'GiftCardCreated': 'bi-plus-circle-fill',
+                    'GiftCardActivated': 'bi-play-circle-fill',
+                    'GiftCardRedeemed': 'bi-cart-dash-fill',
+                    'GiftCardDepleted': 'bi-exclamation-circle-fill',
+                    'GiftCardSuspended': 'bi-pause-circle-fill',
+                    'GiftCardReactivated': 'bi-arrow-counterclockwise',
+                    'GiftCardCancelled': 'bi-x-circle-fill',
+                    'GiftCardExpired': 'bi-hourglass-bottom',
+                    'GiftCardBalanceAdjusted': 'bi-plus-slash-minus',
+                    'GiftCardBalanceDecreased': 'bi-dash-circle-fill'
+                } %}
+                {% set color = eventColors[item.eventType]|default('#6b7280') %}
+                {% set icon = eventIcons[item.eventType]|default('bi-circle') %}
+
+                <div class="timeline-item" data-event-number="{{ item.eventNumber }}">
+                    <div class="timeline-node" style="background: {{ color }};">
+                        <i class="bi {{ icon }}"></i>
+                    </div>
+                    <div class="timeline-content" data-bs-toggle="collapse" data-bs-target="#event-{{ item.eventNumber }}" role="button">
+                        <div class="timeline-header">
+                            <span class="timeline-event-name">{{ item.eventType|replace({'GiftCard': ''}) }}</span>
+                            <span class="timeline-time">{{ item.occurredAt|slice(0, 19)|replace({'T': ' '}) }}</span>
+                        </div>
+                        <div class="collapse" id="event-{{ item.eventNumber }}">
+                            <div class="timeline-details">
+                                <div class="d-flex gap-3 flex-wrap">
+                                    <span class="badge" style="{{ statusStyles[item.status|upper]|default('') }}; font-size:.7rem;">
+                                        {{ item.status|upper }}
+                                    </span>
+                                    <span class="timeline-balance">
+                                        {{ (item.balanceAmount / 100)|number_format(2, ',', ' ') }}
+                                        <span class="text-slate-400">{{ item.balanceCurrency }}</span>
+                                    </span>
+                                    <span class="timeline-event-number">#{{ item.eventNumber }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endif %}

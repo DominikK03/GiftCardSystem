@@ -1,0 +1,27 @@
+{
+  "private": true,
+  "license": "UNLICENSED",
+  "scripts": {
+    "dev": "encore dev",
+    "watch": "encore dev --watch",
+    "build": "encore production --progress"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.26.10",
+    "@babel/preset-env": "^7.26.9",
+    "@symfony/webpack-encore": "^5.1.0",
+    "core-js": "^3.41.0",
+    "regenerator-runtime": "^0.14.1",
+    "sass": "^1.77.6",
+    "sass-loader": "^16.0.5",
+    "webpack": "^5.99.5",
+    "webpack-cli": "^5.1.4"
+  },
+  "dependencies": {
+    "@fontsource/public-sans": "^5.2.5",
+    "@popperjs/core": "^2.11.8",
+    "apexcharts": "^5.3.6",
+    "bootstrap": "^5.3.5",
+    "bootstrap-icons": "^1.11.3"
+  }
+}

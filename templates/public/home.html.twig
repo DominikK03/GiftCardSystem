@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GiftCard System | Aktywacja i Zarzadzanie Kartami</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #f7f6f3;
+            --surface: #ffffff;
+            --ink: #1f2430;
+            --muted: #5f6572;
+            --brand: #115d57;
+            --brand-2: #d77a35;
+            --line: #e4e1da;
+            --shadow: 0 22px 55px -35px rgba(30, 37, 44, 0.4);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: "Public Sans", "Segoe UI", sans-serif;
+            color: var(--ink);
+            background:
+                radial-gradient(900px 460px at 12% -10%, rgba(17, 93, 87, 0.15), transparent 70%),
+                radial-gradient(760px 340px at 100% 0%, rgba(215, 122, 53, 0.16), transparent 72%),
+                var(--bg);
+            line-height: 1.5;
+        }
+
+        .container {
+            width: min(1100px, 92vw);
+            margin: 0 auto;
+        }
+
+        .topbar {
+            position: sticky;
+            top: 0;
+            z-index: 20;
+            border-bottom: 1px solid rgba(228, 225, 218, 0.9);
+            backdrop-filter: blur(12px);
+            background: rgba(247, 246, 243, 0.88);
+        }
+
+        .topbar-inner {
+            min-height: 76px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+        }
+
+        .logo {
+            font-family: "Fraunces", Georgia, serif;
+            font-size: 1.35rem;
+            letter-spacing: 0.01em;
+            text-decoration: none;
+            color: var(--ink);
+        }
+
+        .logo span {
+            color: var(--brand);
+        }
+
+        .nav {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .nav a {
+            text-decoration: none;
+            color: var(--ink);
+            border: 1px solid var(--line);
+            background: var(--surface);
+            padding: 10px 16px;
+            border-radius: 999px;
+            font-weight: 600;
+            transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease;
+        }
+
+        .nav a:hover {
+            transform: translateY(-2px);
+            border-color: rgba(17, 93, 87, 0.35);
+            box-shadow: var(--shadow);
+        }
+
+        .hero {
+            padding: 84px 0 56px;
+        }
+
+        .hero-grid {
+            display: grid;
+            grid-template-columns: 1.1fr 0.9fr;
+            gap: 36px;
+            align-items: center;
+        }
+
+        .eyebrow {
+            margin: 0 0 14px;
+            font-size: .78rem;
+            text-transform: uppercase;
+            letter-spacing: .14em;
+            color: var(--brand);
+            font-weight: 700;
+        }
+
+        h1 {
+            margin: 0;
+            font-family: "Fraunces", Georgia, serif;
+            font-size: clamp(2rem, 4.7vw, 3.7rem);
+            line-height: 1.05;
+            letter-spacing: -0.01em;
+        }
+
+        .hero p {
+            margin: 20px 0 0;
+            max-width: 56ch;
+            font-size: 1.08rem;
+            color: var(--muted);
+        }
+
+        .hero-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: 28px;
+        }
+
+        .btn {
+            text-decoration: none;
+            border-radius: 14px;
+            padding: 13px 18px;
+            font-weight: 700;
+            transition: transform .2s ease, opacity .2s ease;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            opacity: .95;
+        }
+
+        .btn-primary {
+            color: #fff;
+            background: linear-gradient(120deg, var(--brand), #0a6f67);
+        }
+
+        .btn-secondary {
+            color: var(--ink);
+            border: 1px solid var(--line);
+            background: #fff;
+        }
+
+        .hero-panel {
+            background: var(--surface);
+            border: 1px solid var(--line);
+            border-radius: 22px;
+            padding: 22px;
+            box-shadow: var(--shadow);
+        }
+
+        .kpis {
+            margin: 0;
+            padding: 0;
+            list-style: none;
+            display: grid;
+            gap: 14px;
+        }
+
+        .kpis li {
+            border: 1px solid var(--line);
+            border-radius: 14px;
+            padding: 14px;
+            background: #fffdfa;
+        }
+
+        .kpis strong {
+            display: block;
+            font-size: 1.45rem;
+            color: var(--brand);
+        }
+
+        .section {
+            padding: 36px 0 24px;
+        }
+
+        .section h2 {
+            margin: 0 0 12px;
+            font-family: "Fraunces", Georgia, serif;
+            font-size: clamp(1.5rem, 3.2vw, 2.3rem);
+        }
+
+        .section-lead {
+            margin: 0 0 22px;
+            color: var(--muted);
+            max-width: 64ch;
+        }
+
+        .cards {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 16px;
+        }
+
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--line);
+            border-radius: 16px;
+            padding: 18px;
+            box-shadow: var(--shadow);
+        }
+
+        .card h3 {
+            margin: 0 0 8px;
+            font-size: 1.07rem;
+        }
+
+        .card p {
+            margin: 0;
+            color: var(--muted);
+        }
+
+        .process {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 14px;
+            counter-reset: step;
+        }
+
+        .step {
+            position: relative;
+            background: #fff;
+            border: 1px solid var(--line);
+            border-radius: 16px;
+            padding: 18px 16px 16px 46px;
+        }
+
+        .step::before {
+            counter-increment: step;
+            content: counter(step);
+            position: absolute;
+            left: 14px;
+            top: 14px;
+            width: 24px;
+            height: 24px;
+            border-radius: 999px;
+            display: grid;
+            place-items: center;
+            background: var(--brand);
+            color: #fff;
+            font-size: .82rem;
+            font-weight: 700;
+        }
+
+        .cta {
+            margin: 32px 0 58px;
+            background: linear-gradient(120deg, #0f2f2f, #174f4a 55%, #a55b2b 130%);
+            color: #fff;
+            border-radius: 22px;
+            padding: 30px;
+            display: flex;
+            justify-content: space-between;
+            gap: 16px;
+            align-items: center;
+            box-shadow: var(--shadow);
+        }
+
+        .cta p {
+            margin: 8px 0 0;
+            color: rgba(255, 255, 255, 0.84);
+        }
+
+        .cta .btn-secondary {
+            background: rgba(255, 255, 255, 0.12);
+            border-color: rgba(255, 255, 255, 0.33);
+            color: #fff;
+        }
+
+        .footer {
+            border-top: 1px solid var(--line);
+            padding: 28px 0 38px;
+            color: var(--muted);
+            font-size: .95rem;
+        }
+
+        .footer-grid {
+            display: grid;
+            grid-template-columns: 1.2fr 1fr 1fr;
+            gap: 18px;
+        }
+
+        .footer h4 {
+            margin: 0 0 8px;
+            font-size: 1rem;
+            color: var(--ink);
+        }
+
+        .fade-up {
+            opacity: 0;
+            transform: translateY(10px);
+            animation: fadeUp .55s ease forwards;
+        }
+
+        .fade-up:nth-child(2) { animation-delay: .08s; }
+        .fade-up:nth-child(3) { animation-delay: .16s; }
+
+        @keyframes fadeUp {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @media (max-width: 960px) {
+            .hero-grid,
+            .cards,
+            .process,
+            .footer-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .cta {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+        }
+    </style>
+</head>
+<body>
+<header class="topbar">
+    <div class="container topbar-inner">
+        <a href="{{ path('public_home') }}" class="logo">Gift<span>Card</span> System</a>
+        <nav class="nav" aria-label="Nawigacja glowna">
+            <a href="{{ path('activation_form') }}">Aktywuj Karte</a>
+            <a href="{{ path('my_cards_form') }}">Moje Karty</a>
+        </nav>
+    </div>
+</header>
+
+<main class="container">
+    <section class="hero">
+        <div class="hero-grid">
+            <div class="fade-up">
+                <p class="eyebrow">Platforma kart podarunkowych</p>
+                <h1>Aktywacja, saldo i historia kart w jednym, prostym portalu klienta.</h1>
+                <p>
+                    System pozwala bezpiecznie aktywować karty, monitorowac ich wartosc i szybko sprawdzac historie operacji.
+                    Dziala sprawnie na telefonie i desktopie, z naciskiem na prostote i czytelnosc.
+                </p>
+                <div class="hero-actions">
+                    <a class="btn btn-primary" href="{{ path('activation_form') }}">Rozpocznij Aktywacje</a>
+                    <a class="btn btn-secondary" href="{{ path('my_cards_form') }}">Sprawdz Moje Karty</a>
+                </div>
+            </div>
+            <aside class="hero-panel fade-up">
+                <ul class="kpis">
+                    <li><strong>24/7</strong>Dostep klienta do aktywacji i podgladu kart bez kontaktu z infolinia.</li>
+                    <li><strong>2 kroki</strong>Weryfikacja e-mail + kod potwierdzajacy dla bezpiecznego dostepu.</li>
+                    <li><strong>API Ready</strong>Integracja z systemami najemcow przez podpisane zadania HMAC.</li>
+                </ul>
+            </aside>
+        </div>
+    </section>
+
+    <section class="section">
+        <h2>Co system oferuje klientowi</h2>
+        <p class="section-lead">Najwazniejsze funkcje dostepne z poziomu strony klienta, bez koniecznosci logowania do panelu administracyjnego.</p>
+        <div class="cards">
+            <article class="card fade-up">
+                <h3>Aktywacja karty online</h3>
+                <p>Klient potwierdza tozsamosc kodem e-mail i aktywuje karte w kilka minut.</p>
+            </article>
+            <article class="card fade-up">
+                <h3>Podglad salda i daty waznosci</h3>
+                <p>Natychmiastowy dostep do aktualnego salda, statusu i terminu wygasniecia.</p>
+            </article>
+            <article class="card fade-up">
+                <h3>Historia transakcji</h3>
+                <p>Czytelny timeline zdarzen: aktywacje, uzycia, korekty salda i wygasniecia.</p>
+            </article>
+        </div>
+    </section>
+
+    <section class="section">
+        <h2>Jak to dziala</h2>
+        <div class="process">
+            <article class="step fade-up">
+                <h3>Wpisz dane karty</h3>
+                <p>Numer karty, PIN i adres e-mail klienta.</p>
+            </article>
+            <article class="step fade-up">
+                <h3>Potwierdz kodem</h3>
+                <p>Jednorazowy kod trafia na e-mail i zabezpiecza dostep.</p>
+            </article>
+            <article class="step fade-up">
+                <h3>Korzystaj i monitoruj</h3>
+                <p>Aktywna karta, saldo i historia sa stale pod reka.</p>
+            </article>
+        </div>
+    </section>
+
+    <section class="cta fade-up">
+        <div>
+            <h2>Gotowy, by aktywowac pierwsza karte?</h2>
+            <p>Przejdz do procesu aktywacji albo sprawdz liste kart przypisanych do Twojego e-maila.</p>
+        </div>
+        <div class="hero-actions">
+            <a class="btn btn-primary" href="{{ path('activation_form') }}">Aktywuj Karte</a>
+            <a class="btn btn-secondary" href="{{ path('my_cards_form') }}">Moje Karty</a>
+        </div>
+    </section>
+</main>
+
+<footer class="footer">
+    <div class="container footer-grid">
+        <section>
+            <h4>GiftCard System Sp. z o.o.</h4>
+            <div>ul. Przemyslowa 12, 00-950 Warszawa</div>
+            <div>NIP: 525-000-11-22</div>
+        </section>
+        <section>
+            <h4>Kontakt</h4>
+            <div>+48 22 555 44 33</div>
+            <div>kontakt@giftcardsystem.pl</div>
+        </section>
+        <section>
+            <h4>Godziny wsparcia</h4>
+            <div>Pon-Pt: 8:00-18:00</div>
+            <div>Sob: 9:00-14:00</div>
+        </section>
+    </div>
+</footer>
+</body>
+</html>

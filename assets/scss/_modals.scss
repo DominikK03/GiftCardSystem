@@ -1,0 +1,28 @@
+.confirm-modal .modal-content {
+  border: 1px solid var(--border, #e6eaf0);
+  border-radius: var(--radius-lg, 12px);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+}
+
+.confirm-modal .modal-header {
+  border-bottom: 1px solid var(--border, #e6eaf0);
+  padding: 16px 20px;
+}
+
+.confirm-modal .modal-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text, #1f2937);
+}
+
+.confirm-modal .modal-body {
+  padding: 20px;
+  font-size: 0.9rem;
+  color: var(--text-muted, #6b7280);
+}
+
+.confirm-modal .modal-footer {
+  border-top: 1px solid var(--border, #e6eaf0);
+  padding: 12px 20px;
+  gap: 8px;
+}

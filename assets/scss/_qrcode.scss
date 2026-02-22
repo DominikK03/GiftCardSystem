@@ -1,0 +1,20 @@
+.qr-code-wrapper {
+  display: inline-block;
+  padding: 8px;
+  background: #fff;
+  border: 2px solid var(--border, #e6eaf0);
+  border-radius: var(--radius-md, 10px);
+}
+
+.qr-code-image {
+  width: 160px;
+  height: 160px;
+  display: block;
+}
+
+@media (max-width: 991.98px) {
+  .qr-code-image {
+    width: 120px;
+    height: 120px;
+  }
+}

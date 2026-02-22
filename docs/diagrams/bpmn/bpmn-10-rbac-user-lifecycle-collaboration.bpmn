@@ -1,0 +1,264 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" id="Defs_BPMN_10" targetNamespace="https://giftcard.local/bpmn" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI">
+  <bpmn:collaboration id="Collab_10">
+    <bpmn:participant id="P10_Owner" name="Owner User" processRef="Process_10_Owner"/>
+    <bpmn:participant id="P10_BackofficeUI" name="Backoffice UI" processRef="Process_10_BackofficeUI"/>
+    <bpmn:participant id="P10_UserService" name="User Application Service" processRef="Process_10_UserService"/>
+    <bpmn:participant id="P10_Security" name="Security/Auth Layer" processRef="Process_10_Security"/>
+    <bpmn:messageFlow id="M10_LoginRequest" sourceRef="T10_SubmitCredentials" targetRef="S10_LoginAttempt" name="Login form"/>
+    <bpmn:messageFlow id="M10_LoginResult" sourceRef="T10_ReturnAuthResult" targetRef="T10_OpenUserAdmin" name="Auth result"/>
+    <bpmn:messageFlow id="M10_UserAction" sourceRef="T10_SubmitUserAction" targetRef="S10_UserActionReceived" name="Create/Edit/Deactivate/Delete"/>
+    <bpmn:messageFlow id="M10_PermissionCheck" sourceRef="T10_CheckPermission" targetRef="T10_AwaitPermissionResult" name="Role check"/>
+    <bpmn:messageFlow id="M10_ActionResult" sourceRef="T10_ReturnActionResult" targetRef="T10_ReviewOutcome" name="Result"/>
+  </bpmn:collaboration>
+  <bpmn:process id="Process_10_Owner" isExecutable="false">
+    <bpmn:startEvent id="S10_OwnerStart" name="Open backoffice"/>
+    <bpmn:task id="T10_SubmitCredentials" name="Submit login credentials"/>
+    <bpmn:task id="T10_OpenUserAdmin" name="Open user administration"/>
+    <bpmn:task id="T10_SubmitUserAction" name="Submit user action"/>
+    <bpmn:task id="T10_ReviewOutcome" name="Review action outcome"/>
+    <bpmn:endEvent id="E10_OwnerDone" name="User management complete"/>
+    <bpmn:sequenceFlow id="F10_01" sourceRef="S10_OwnerStart" targetRef="T10_SubmitCredentials"/>
+    <bpmn:sequenceFlow id="F10_02" sourceRef="T10_SubmitCredentials" targetRef="T10_OpenUserAdmin"/>
+    <bpmn:sequenceFlow id="F10_03" sourceRef="T10_OpenUserAdmin" targetRef="T10_SubmitUserAction"/>
+    <bpmn:sequenceFlow id="F10_04" sourceRef="T10_SubmitUserAction" targetRef="T10_ReviewOutcome"/>
+    <bpmn:sequenceFlow id="F10_05" sourceRef="T10_ReviewOutcome" targetRef="E10_OwnerDone"/>
+  </bpmn:process>
+  <bpmn:process id="Process_10_BackofficeUI" isExecutable="true">
+    <bpmn:startEvent id="S10_LoginAttempt" name="Login request received"/>
+    <bpmn:task id="T10_AuthenticateSession" name="Authenticate session"/>
+    <bpmn:task id="T10_ReturnAuthResult" name="Return auth result"/>
+    <bpmn:startEvent id="S10_UserActionReceived" name="User action received"/>
+    <bpmn:task id="T10_AwaitPermissionResult" name="Await permission decision"/>
+    <bpmn:task id="T10_ReturnActionResult" name="Return success/error message"/>
+    <bpmn:endEvent id="E10_UiDone" name="UI cycle done"/>
+    <bpmn:sequenceFlow id="F10_06" sourceRef="S10_LoginAttempt" targetRef="T10_AuthenticateSession"/>
+    <bpmn:sequenceFlow id="F10_07" sourceRef="T10_AuthenticateSession" targetRef="T10_ReturnAuthResult"/>
+    <bpmn:sequenceFlow id="F10_08" sourceRef="T10_ReturnAuthResult" targetRef="E10_UiDone"/>
+    <bpmn:sequenceFlow id="F10_09" sourceRef="S10_UserActionReceived" targetRef="T10_AwaitPermissionResult"/>
+    <bpmn:sequenceFlow id="F10_10" sourceRef="T10_AwaitPermissionResult" targetRef="T10_ReturnActionResult"/>
+    <bpmn:sequenceFlow id="F10_11" sourceRef="T10_ReturnActionResult" targetRef="E10_UiDone"/>
+  </bpmn:process>
+  <bpmn:process id="Process_10_UserService" isExecutable="true">
+    <bpmn:startEvent id="S10_ActionStart" name="Action handling start"/>
+    <bpmn:task id="T10_CheckPermission" name="Check role and business constraints"/>
+    <bpmn:exclusiveGateway id="G10_Allowed" name="Allowed?"/>
+    <bpmn:task id="T10_RejectAction" name="Reject: insufficient permission or self-delete"/>
+    <bpmn:task id="T10_ExecuteAction" name="Execute Register/RoleChange/Activate/Deactivate/Delete"/>
+    <bpmn:task id="T10_WriteAudit" name="Write audit and flash message"/>
+    <bpmn:endEvent id="E10_ServiceDone" name="Service done"/>
+    <bpmn:sequenceFlow id="F10_12" sourceRef="S10_ActionStart" targetRef="T10_CheckPermission"/>
+    <bpmn:sequenceFlow id="F10_13" sourceRef="T10_CheckPermission" targetRef="G10_Allowed"/>
+    <bpmn:sequenceFlow id="F10_14" sourceRef="G10_Allowed" targetRef="T10_RejectAction" name="No"/>
+    <bpmn:sequenceFlow id="F10_15" sourceRef="T10_RejectAction" targetRef="E10_ServiceDone"/>
+    <bpmn:sequenceFlow id="F10_16" sourceRef="G10_Allowed" targetRef="T10_ExecuteAction" name="Yes"/>
+    <bpmn:sequenceFlow id="F10_17" sourceRef="T10_ExecuteAction" targetRef="T10_WriteAudit"/>
+    <bpmn:sequenceFlow id="F10_18" sourceRef="T10_WriteAudit" targetRef="E10_ServiceDone"/>
+  </bpmn:process>
+  <bpmn:process id="Process_10_Security" isExecutable="true">
+    <bpmn:startEvent id="S10_SecurityStart" name="Security check start"/>
+    <bpmn:task id="T10_LoadSecurityUser" name="Load SecurityUser and hash checks"/>
+    <bpmn:task id="T10_VerifyRoleHierarchy" name="Verify role hierarchy and active status"/>
+    <bpmn:endEvent id="E10_SecurityDone" name="Decision ready"/>
+    <bpmn:sequenceFlow id="F10_19" sourceRef="S10_SecurityStart" targetRef="T10_LoadSecurityUser"/>
+    <bpmn:sequenceFlow id="F10_20" sourceRef="T10_LoadSecurityUser" targetRef="T10_VerifyRoleHierarchy"/>
+    <bpmn:sequenceFlow id="F10_21" sourceRef="T10_VerifyRoleHierarchy" targetRef="E10_SecurityDone"/>
+  </bpmn:process>
+  <bpmndi:BPMNDiagram xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNDiagram_Collab_10">
+    <bpmndi:BPMNPlane id="BPMNPlane_Collab_10" bpmnElement="Collab_10">
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_P10_Owner" bpmnElement="P10_Owner" isHorizontal="true">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="80" y="80" width="2200" height="260"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_S10_OwnerStart" bpmnElement="S10_OwnerStart">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="220" y="170" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_T10_SubmitCredentials" bpmnElement="T10_SubmitCredentials">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="370" y="170" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_T10_OpenUserAdmin" bpmnElement="T10_OpenUserAdmin">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="520" y="170" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_T10_SubmitUserAction" bpmnElement="T10_SubmitUserAction">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="670" y="170" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_T10_ReviewOutcome" bpmnElement="T10_ReviewOutcome">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="820" y="170" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_E10_OwnerDone" bpmnElement="E10_OwnerDone">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="970" y="170" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_P10_BackofficeUI" bpmnElement="P10_BackofficeUI" isHorizontal="true">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="80" y="410" width="2200" height="260"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_S10_LoginAttempt" bpmnElement="S10_LoginAttempt">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="220" y="500" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_T10_AuthenticateSession" bpmnElement="T10_AuthenticateSession">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="370" y="500" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_T10_ReturnAuthResult" bpmnElement="T10_ReturnAuthResult">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="520" y="500" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_S10_UserActionReceived" bpmnElement="S10_UserActionReceived">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="670" y="500" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_T10_AwaitPermissionResult" bpmnElement="T10_AwaitPermissionResult">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="820" y="500" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_T10_ReturnActionResult" bpmnElement="T10_ReturnActionResult">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="970" y="500" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_E10_UiDone" bpmnElement="E10_UiDone">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="1120" y="500" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_P10_UserService" bpmnElement="P10_UserService" isHorizontal="true">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="80" y="740" width="2200" height="260"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_S10_ActionStart" bpmnElement="S10_ActionStart">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="220" y="830" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_T10_CheckPermission" bpmnElement="T10_CheckPermission">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="370" y="830" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_G10_Allowed" bpmnElement="G10_Allowed">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="520" y="830" width="50" height="50"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_T10_RejectAction" bpmnElement="T10_RejectAction">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="670" y="830" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_T10_ExecuteAction" bpmnElement="T10_ExecuteAction">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="820" y="830" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_T10_WriteAudit" bpmnElement="T10_WriteAudit">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="970" y="830" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_E10_ServiceDone" bpmnElement="E10_ServiceDone">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="1120" y="830" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_P10_Security" bpmnElement="P10_Security" isHorizontal="true">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="80" y="1070" width="2200" height="260"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_S10_SecurityStart" bpmnElement="S10_SecurityStart">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="220" y="1160" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_T10_LoadSecurityUser" bpmnElement="T10_LoadSecurityUser">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="370" y="1160" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_T10_VerifyRoleHierarchy" bpmnElement="T10_VerifyRoleHierarchy">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="520" y="1160" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_E10_SecurityDone" bpmnElement="E10_SecurityDone">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="670" y="1160" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_F10_01" bpmnElement="F10_01">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="238" y="188"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="430" y="210"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_F10_02" bpmnElement="F10_02">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="430" y="210"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="580" y="210"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_F10_03" bpmnElement="F10_03">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="580" y="210"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="730" y="210"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_F10_04" bpmnElement="F10_04">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="730" y="210"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="880" y="210"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_F10_05" bpmnElement="F10_05">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="880" y="210"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="988" y="188"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_F10_06" bpmnElement="F10_06">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="238" y="518"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="430" y="540"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_F10_07" bpmnElement="F10_07">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="430" y="540"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="580" y="540"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_F10_08" bpmnElement="F10_08">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="580" y="540"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="1138" y="518"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_F10_09" bpmnElement="F10_09">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="688" y="518"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="880" y="540"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_F10_10" bpmnElement="F10_10">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="880" y="540"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="1030" y="540"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_F10_11" bpmnElement="F10_11">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="1030" y="540"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="1138" y="518"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_F10_12" bpmnElement="F10_12">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="238" y="848"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="430" y="870"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_F10_13" bpmnElement="F10_13">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="430" y="870"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="545" y="855"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_F10_14" bpmnElement="F10_14">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="545" y="855"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="730" y="870"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_F10_15" bpmnElement="F10_15">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="730" y="870"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="1138" y="848"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_F10_16" bpmnElement="F10_16">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="545" y="855"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="880" y="870"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_F10_17" bpmnElement="F10_17">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="880" y="870"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="1030" y="870"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_F10_18" bpmnElement="F10_18">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="1030" y="870"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="1138" y="848"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_F10_19" bpmnElement="F10_19">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="238" y="1178"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="430" y="1200"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_F10_20" bpmnElement="F10_20">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="430" y="1200"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="580" y="1200"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_F10_21" bpmnElement="F10_21">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="580" y="1200"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="688" y="1178"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_M10_LoginRequest" bpmnElement="M10_LoginRequest">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="430" y="210"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="334" y="346"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="238" y="518"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_M10_LoginResult" bpmnElement="M10_LoginResult">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="580" y="540"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="580" y="357"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="580" y="210"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_M10_UserAction" bpmnElement="M10_UserAction">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="730" y="210"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="709" y="346"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="688" y="518"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_M10_PermissionCheck" bpmnElement="M10_PermissionCheck">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="430" y="870"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="655" y="687"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="880" y="540"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_M10_ActionResult" bpmnElement="M10_ActionResult">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="1030" y="540"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="955" y="357"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="880" y="210"/>
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

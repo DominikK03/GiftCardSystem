@@ -1,0 +1,216 @@
+{% extends 'admin/layout.html.twig' %}
+
+{% block title %}{{ tenant.name }}{% endblock %}
+{% block page_title %}{{ tenant.name }}{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+    {# Main info #}
+    <div class="col-lg-8">
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-building me-2"></i>{{ 'tenant.details'|trans({}, 'ui') }}</span>
+                <a href="{{ path('admin_tenant_edit', {id: tenant.id ~ ''}) }}" class="btn btn-sm btn-outline-primary">
+                    <i class="bi bi-pencil me-1"></i>{{ 'tenant.edit'|trans({}, 'ui') }}
+                </a>
+            </div>
+            <div class="card-body p-0">
+                <table class="table mb-0" style="border-collapse:separate;">
+                    <tbody>
+                        <tr>
+                            <td class="text-slate-400 fw-medium" style="width:180px;padding-left:20px;">{{ 'common.id'|trans({}, 'ui') }}</td>
+                            <td><span class="id-cell" style="font-size:.8rem;">{{ tenant.id }}</span></td>
+                        </tr>
+                        <tr>
+                            <td class="text-slate-400 fw-medium" style="padding-left:20px;">{{ 'common.name'|trans({}, 'ui') }}</td>
+                            <td class="fw-medium">{{ tenant.name }}</td>
+                        </tr>
+                        <tr>
+                            <td class="text-slate-400 fw-medium" style="padding-left:20px;">{{ 'common.email'|trans({}, 'ui') }}</td>
+                            <td>{{ tenant.email }}</td>
+                        </tr>
+                        <tr>
+                            <td class="text-slate-400 fw-medium" style="padding-left:20px;">{{ 'tenant.tax_id'|trans({}, 'ui') }}</td>
+                            <td>{{ tenant.nip }}</td>
+                        </tr>
+                        <tr>
+                            <td class="text-slate-400 fw-medium" style="padding-left:20px;">{{ 'tenant.phone'|trans({}, 'ui') }}</td>
+                            <td>{{ tenant.phoneNumber }}</td>
+                        </tr>
+                        <tr>
+                            <td class="text-slate-400 fw-medium" style="padding-left:20px;">{{ 'tenant.address'|trans({}, 'ui') }}</td>
+                            <td>{{ tenant.address.toString() }}</td>
+                        </tr>
+                        <tr>
+                            <td class="text-slate-400 fw-medium" style="padding-left:20px;">{{ 'tenant.representative'|trans({}, 'ui') }}</td>
+                            <td>{{ tenant.representativeName.fullName }}</td>
+                        </tr>
+                        <tr>
+                            <td class="text-slate-400 fw-medium" style="padding-left:20px;">{{ 'common.status'|trans({}, 'ui') }}</td>
+                            <td>
+                                {% if tenant.status.value == 'ACTIVE' %}
+                                    <span class="badge" style="background:#ecfdf5;color:#065f46;">ACTIVE</span>
+                                {% elseif tenant.status.value == 'SUSPENDED' %}
+                                    <span class="badge" style="background:#fffbeb;color:#92400e;">SUSPENDED</span>
+                                {% elseif tenant.status.value == 'CANCELLED' %}
+                                    <span class="badge" style="background:#fef2f2;color:#991b1b;">CANCELLED</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="text-slate-400 fw-medium" style="padding-left:20px;">{{ 'common.created'|trans({}, 'ui') }}</td>
+                            <td style="font-size:.85rem;">{{ tenant.createdAt|date('d.m.Y H:i') }}</td>
+                        </tr>
+                        {% if tenant.suspendedAt %}
+                            <tr>
+                                <td class="text-slate-400 fw-medium" style="padding-left:20px;">{{ 'tenant.suspended_at'|trans({}, 'ui') }}</td>
+                                <td style="font-size:.85rem;">{{ tenant.suspendedAt|date('d.m.Y H:i') }}</td>
+                            </tr>
+                        {% endif %}
+                        {% if tenant.cancelledAt %}
+                            <tr>
+                                <td class="text-slate-400 fw-medium" style="padding-left:20px;">{{ 'tenant.cancelled_at'|trans({}, 'ui') }}</td>
+                                <td style="font-size:.85rem;">{{ tenant.cancelledAt|date('d.m.Y H:i') }}</td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    {# Actions sidebar #}
+    <div class="col-lg-4">
+        <div class="card mb-3">
+            <div class="card-header"><i class="bi bi-lightning me-2"></i>{{ 'common.actions'|trans({}, 'ui') }}</div>
+            <div class="card-body d-grid gap-2">
+                <a href="{{ path('admin_tenant_edit', {id: tenant.id ~ ''}) }}" class="btn btn-outline-primary">
+                    <i class="bi bi-pencil me-2"></i>{{ 'tenant.edit_details'|trans({}, 'ui') }}
+                </a>
+
+                {% if is_granted('ROLE_OWNER') %}
+                    {% if tenant.status.value == 'ACTIVE' %}
+                        <form method="POST" action="{{ path('admin_tenant_suspend', {id: tenant.id ~ ''}) }}">
+                            <input type="hidden" name="_token" value="{{ csrf_token('tenant_suspend_' ~ (tenant.id ~ '')) }}">
+                            <button type="submit" class="btn btn-warning w-100">
+                                <i class="bi bi-pause-circle me-2"></i>{{ 'tenant.action_suspend'|trans({}, 'ui') }}
+                            </button>
+                        </form>
+                    {% endif %}
+
+                    {% if tenant.status.value == 'SUSPENDED' %}
+                        <form method="POST" action="{{ path('admin_tenant_reactivate', {id: tenant.id ~ ''}) }}">
+                            <input type="hidden" name="_token" value="{{ csrf_token('tenant_reactivate_' ~ (tenant.id ~ '')) }}">
+                            <button type="submit" class="btn btn-success w-100">
+                                <i class="bi bi-arrow-counterclockwise me-2"></i>{{ 'tenant.action_reactivate'|trans({}, 'ui') }}
+                            </button>
+                        </form>
+                    {% endif %}
+
+                    {% if tenant.status.value in ['ACTIVE', 'SUSPENDED'] %}
+                        <button type="button" class="btn btn-outline-danger w-100" data-bs-toggle="modal" data-bs-target="#cancelTenantModal">
+                            <i class="bi bi-x-circle me-2"></i>{{ 'tenant.action_cancel'|trans({}, 'ui') }}
+                        </button>
+                    {% endif %}
+                {% endif %}
+
+                <a href="{{ path('admin_tenant_index') }}" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left me-2"></i>{{ 'tenant.back_to_list'|trans({}, 'ui') }}
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+{# Cooperation Agreement #}
+{% if agreement %}
+<div class="card mt-2 mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-file-earmark-text me-2"></i>{{ 'tenant.cooperation_agreement'|trans({}, 'ui') }}</span>
+        {% if agreement.type.value == 'SIGNED_COOPERATION_AGREEMENT' %}
+            <span class="badge" style="background:#ecfdf5;color:#065f46;">{{ 'tenant.signed'|trans({}, 'ui') }}</span>
+        {% else %}
+            <span class="badge" style="background:#eff6ff;color:#1e40af;">{{ 'tenant.generated'|trans({}, 'ui') }}</span>
+        {% endif %}
+    </div>
+    <div class="card-body p-0">
+        <iframe src="{{ path('admin_tenant_document_preview', {documentId: agreement.id}) }}"
+                style="width:100%;height:600px;border:none;"></iframe>
+    </div>
+    <div class="card-footer d-flex justify-content-between align-items-center">
+        <span class="text-slate-400" style="font-size:.85rem;">{{ agreement.originalName }}</span>
+        <a href="{{ path('admin_tenant_document_download', {documentId: agreement.id}) }}"
+           class="btn btn-sm btn-outline-primary">
+            <i class="bi bi-download me-1"></i>{{ 'tenant.download'|trans({}, 'ui') }}
+        </a>
+    </div>
+</div>
+{% endif %}
+
+{# Documents #}
+<div class="card mt-2">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-file-earmark-pdf me-2"></i>{{ 'tenant.documents'|trans({}, 'ui') }}</span>
+        {% if documents|length > 0 %}
+            <span class="badge" style="background:#f1f5f9;color:#64748b;">{{ documents|length }}</span>
+        {% endif %}
+    </div>
+    {% if documents|length > 0 %}
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>{{ 'tenant.type'|trans({}, 'ui') }}</th>
+                        <th>{{ 'common.name'|trans({}, 'ui') }}</th>
+                        <th>{{ 'common.created'|trans({}, 'ui') }}</th>
+                        <th class="text-end">{{ 'tenant.size'|trans({}, 'ui') }}</th>
+                        <th style="width:80px;" class="text-center">{{ 'tenant.download'|trans({}, 'ui') }}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for doc in documents %}
+                        <tr>
+                            <td>
+                                {% if doc.type.value == 'COOPERATION_AGREEMENT' %}
+                                    <span class="badge" style="background:#eff6ff;color:#1e40af;">{{ 'tenant.doc_type_agreement'|trans({}, 'ui') }}</span>
+                                {% elseif doc.type.value == 'SIGNED_COOPERATION_AGREEMENT' %}
+                                    <span class="badge" style="background:#ecfdf5;color:#065f46;">{{ 'tenant.doc_type_signed_agreement'|trans({}, 'ui') }}</span>
+                                {% elseif doc.type.value == 'INVOICE' %}
+                                    <span class="badge" style="background:#ecfdf5;color:#065f46;">{{ 'tenant.doc_type_invoice'|trans({}, 'ui') }}</span>
+                                {% endif %}
+                            </td>
+                            <td class="fw-medium">{{ doc.originalName }}</td>
+                            <td class="text-slate-400" style="font-size:.8rem;">{{ doc.createdAt|date('d.m.Y H:i') }}</td>
+                            <td class="text-end text-slate-400" style="font-size:.8rem;">{{ (doc.size / 1024)|number_format(1) }} KB</td>
+                            <td class="text-center">
+                                <a href="{{ path('admin_tenant_document_download', {documentId: doc.id}) }}"
+                                   class="action-btn" title="{{ 'tenant.download'|trans({}, 'ui') }}">
+                                    <i class="bi bi-download"></i>
+                                </a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <div class="empty-state">
+            <i class="bi bi-file-earmark d-block"></i>
+            <p>{{ 'tenant.no_documents'|trans({}, 'ui') }}</p>
+        </div>
+    {% endif %}
+</div>
+
+{# Cancel confirmation modal #}
+{% if tenant.status.value in ['ACTIVE', 'SUSPENDED'] %}
+    {% include 'admin/components/_confirm_modal.html.twig' with {
+        modal_id: 'cancelTenantModal',
+        title: 'tenant.cancel_confirm_title'|trans({}, 'ui'),
+        message: 'tenant.cancel_confirm'|trans({}, 'ui'),
+        action_url: path('admin_tenant_cancel', {id: tenant.id ~ ''}),
+        csrf_token_value: csrf_token('tenant_cancel_' ~ (tenant.id ~ '')),
+        button_label: 'tenant.action_cancel'|trans({}, 'ui'),
+        button_class: 'btn btn-danger'
+    } %}
+{% endif %}
+{% endblock %}

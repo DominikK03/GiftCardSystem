@@ -1,0 +1,11 @@
+{# Toast notification container #}
+<div id="toast-container" aria-live="polite" aria-atomic="true"></div>
+
+{# Convert flash messages to data elements for JS toast processing #}
+{% for type, messages in app.flashes %}
+    {% for message in messages %}
+        <div data-flash-type="{{ type == 'error' ? 'danger' : type }}"
+             data-flash-message="{{ message|trans({}, 'ui') }}"
+             style="display:none;"></div>
+    {% endfor %}
+{% endfor %}

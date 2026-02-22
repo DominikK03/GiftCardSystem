@@ -1,0 +1,43 @@
+{% extends 'activation/layout.html.twig' %}
+
+{% block content %}
+<div class="bg-white rounded-2xl shadow-[0_22px_55px_-35px_rgba(30,37,44,0.4)] border border-[#e4e1da] p-6">
+    <div class="text-center mb-6">
+        <div class="inline-flex items-center justify-center w-16 h-16 bg-emerald-100 rounded-full mb-4">
+            <svg class="w-8 h-8 text-emerald-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+        </div>
+        <h2 class="text-2xl [font-family:'Fraunces',serif] font-semibold text-slate-900">{{ 'activation.summary_heading'|trans({}, 'ui') }}</h2>
+        <p class="text-sm text-slate-500 mt-1">{{ 'activation.summary_description'|trans({}, 'ui') }}</p>
+    </div>
+
+    <div class="bg-[#fffdfa] rounded-xl p-4 mb-6 space-y-3 border border-[#ece7df]">
+        <div class="flex justify-between items-center">
+            <span class="text-sm text-slate-500">{{ 'activation.summary_card_number'|trans({}, 'ui') }}</span>
+            <span class="font-mono font-medium text-slate-900 tracking-wider">{{ card_number }}</span>
+        </div>
+        <div class="border-t border-[#e5ded2]"></div>
+        <div class="flex justify-between items-center">
+            <span class="text-sm text-slate-500">{{ 'activation.summary_balance'|trans({}, 'ui') }}</span>
+            <span class="text-lg font-semibold text-emerald-800">{{ (balance_amount / 100)|number_format(2, ',', ' ') }} {{ balance_currency }}</span>
+        </div>
+        <div class="border-t border-[#e5ded2]"></div>
+        <div class="flex justify-between items-center">
+            <span class="text-sm text-slate-500">{{ 'activation.summary_expires'|trans({}, 'ui') }}</span>
+            <span class="text-sm text-slate-800">{{ expires_at|date('d.m.Y') }}</span>
+        </div>
+        <div class="border-t border-[#e5ded2]"></div>
+        <div class="flex justify-between items-center">
+            <span class="text-sm text-slate-500">{{ 'activation.summary_email'|trans({}, 'ui') }}</span>
+            <span class="text-sm text-slate-800">{{ email }}</span>
+        </div>
+    </div>
+
+    <form method="POST" action="{{ path('activation_assign', {id: activation_id}) }}">
+        <button type="submit" class="w-full bg-gradient-to-r from-emerald-700 to-emerald-600 text-white py-2.5 px-4 rounded-xl font-semibold hover:-translate-y-0.5 focus:ring-2 focus:ring-emerald-600/35 focus:ring-offset-2 transition">
+            {{ 'activation.assign_button'|trans({}, 'ui') }}
+        </button>
+    </form>
+</div>
+{% endblock %}

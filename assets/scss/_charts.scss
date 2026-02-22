@@ -1,0 +1,33 @@
+// Chart containers
+[id^="chart-"] {
+  width: 100%;
+}
+
+// Override ApexCharts tooltip to match admin theme
+.apexcharts-tooltip {
+  background: var(--card-bg, #fff) !important;
+  border: 1px solid var(--border, #e6eaf0) !important;
+  border-radius: var(--radius-md, 10px) !important;
+  box-shadow: var(--shadow-soft) !important;
+  font-family: "Public Sans", "Segoe UI", system-ui, sans-serif !important;
+  font-size: 0.85rem !important;
+}
+
+.apexcharts-tooltip-title {
+  background: #f8fafc !important;
+  border-bottom: 1px solid var(--border, #e6eaf0) !important;
+  font-weight: 600 !important;
+}
+
+// Legend styling
+.apexcharts-legend-text {
+  font-family: "Public Sans", "Segoe UI", system-ui, sans-serif !important;
+  color: var(--text-muted, #6b7280) !important;
+}
+
+// Responsive
+@media (max-width: 991.98px) {
+  [id^="chart-"] {
+    min-height: 220px !important;
+  }
+}

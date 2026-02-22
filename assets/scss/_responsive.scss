@@ -1,0 +1,42 @@
+@media (min-width: 992px) {
+  .admin-main {
+    margin-left: var(--sidebar-width);
+  }
+
+  .admin-sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    transform: none;
+    visibility: visible !important;
+  }
+
+  .admin-sidebar .offcanvas-body {
+    height: 100vh;
+  }
+}
+
+@media (max-width: 991.98px) {
+  .admin-topbar {
+    padding: 0 16px;
+  }
+
+  .admin-body {
+    padding: 20px 16px 28px;
+  }
+
+  .login-card {
+    padding: 28px;
+  }
+}
+
+@media (max-width: 575.98px) {
+  .login-card {
+    padding: 24px;
+  }
+
+  .login-brand h1 {
+    font-size: 1.4rem;
+  }
+}

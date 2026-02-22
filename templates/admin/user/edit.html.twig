@@ -1,0 +1,63 @@
+{% extends 'admin/layout.html.twig' %}
+
+{% block title %}{{ 'user.edit_title'|trans({'%email%': user.email}, 'ui') }}{% endblock %}
+{% block page_title %}{{ 'user.edit_title'|trans({'%email%': user.email}, 'ui') }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-6">
+        {% if errors is defined and errors|length > 0 %}
+            <div class="alert alert-danger d-flex align-items-start mb-3">
+                <i class="bi bi-exclamation-triangle-fill me-2 mt-1"></i>
+                <div>
+                    {% for error in errors %}
+                        <div>{{ error }}</div>
+                    {% endfor %}
+                </div>
+            </div>
+        {% endif %}
+
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-pencil me-2"></i>{{ 'user.edit_title'|trans({'%email%': user.email}, 'ui') }}
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ path('admin_user_edit', {id: user.id ~ ''}) }}">
+                    <input type="hidden" name="_token" value="{{ csrf_token('user_edit') }}">
+
+                    <div class="mb-3">
+                        <label class="form-label">{{ 'user.email_label'|trans({}, 'ui') }}</label>
+                        <input type="email" class="form-control" value="{{ user.email }}" disabled>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="role" class="form-label">{{ 'user.role'|trans({}, 'ui') }}</label>
+                        <select id="role" name="role" class="form-select" required>
+                            {% for role in roles %}
+                                <option value="{{ role.value }}" {{ user.role.value == role.value ? 'selected' : '' }}>
+                                    {{ role.value }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="password" class="form-label">{{ 'user.new_password'|trans({}, 'ui') }}</label>
+                        <input type="password" id="password" name="password" class="form-control">
+                        <div class="form-text">{{ 'user.new_password_hint'|trans({}, 'ui') }}</div>
+                    </div>
+
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ path('admin_user_index') }}" class="btn btn-outline-secondary">
+                            <i class="bi bi-arrow-left me-1"></i>{{ 'user.cancel'|trans({}, 'ui') }}
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-lg me-1"></i>{{ 'user.save_changes'|trans({}, 'ui') }}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

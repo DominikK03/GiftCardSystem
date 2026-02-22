@@ -1,0 +1,33 @@
+{% extends 'admin/layout.html.twig' %}
+
+{% block title %}{{ 'wizard.step3_title'|trans({}, 'ui') }}{% endblock %}
+{% block page_title %}{{ 'wizard.new_tenant'|trans({}, 'ui') }}{% endblock %}
+
+{% block content %}
+    {% include 'admin/wizard/_progress.html.twig' with {currentStep: 3} %}
+
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span><i class="bi bi-file-earmark-text me-2"></i>{{ 'wizard.agreement_preview'|trans({}, 'ui') }}</span>
+                    <span class="text-slate-400" style="font-size:.75rem;">{{ 'wizard.agreement_hint'|trans({}, 'ui') }}</span>
+                </div>
+                <div class="card-body p-0">
+                    <div style="background:#f8fafc;">
+                        <iframe src="{{ path('admin_tenant_wizard_preview_pdf') }}"
+                                style="width: 100%; height: 600px; border: none; display:block;"></iframe>
+                    </div>
+                </div>
+                <div class="card-footer d-flex justify-content-between">
+                    <a href="{{ path('admin_tenant_wizard_step2') }}" class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-left me-1"></i>{{ 'wizard.back'|trans({}, 'ui') }}
+                    </a>
+                    <a href="{{ path('admin_tenant_wizard_step4') }}" class="btn btn-primary">
+                        {{ 'wizard.next'|trans({}, 'ui') }} <i class="bi bi-arrow-right ms-1"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

@@ -1,0 +1,258 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions
+  xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+  id="Definitions_PL06"
+  targetNamespace="http://pl.giftcard.bpmn/06"
+  exporter="GiftCard BPMN Designer"
+  exporterVersion="2.0">
+
+  <!-- ═══════════════════════════════════════════ -->
+  <!-- Definicje wiadomości                        -->
+  <!-- ═══════════════════════════════════════════ -->
+  <bpmn:message id="Msg06_Request"      name="Zlecenie operacji na karcie podarunkowej"/>
+  <bpmn:message id="Msg06_Accepted"     name="Potwierdzenie przyjęcia zlecenia do realizacji"/>
+  <bpmn:message id="Msg06_FailureAlert" name="Powiadomienie o nieudanym zleceniu"/>
+
+  <!-- ═══════════════════════════════════════════ -->
+  <!-- Kolaboracja                                 -->
+  <!-- ═══════════════════════════════════════════ -->
+  <bpmn:collaboration id="Collab_PL06">
+    <bpmn:participant id="P06_Init"  name="Inicjator (Administrator / System Najemcy)" processRef="Proc06_Init"/>
+    <bpmn:participant id="P06_Sys"   name="System Kart Podarunkowych"                   processRef="Proc06_Sys"/>
+    <bpmn:participant id="P06_Admin" name="Administrator"                                processRef="Proc06_Admin"/>
+
+    <bpmn:messageFlow id="MF06_01" sourceRef="T06I_Send"         targetRef="S06S_Start"    name="Zlecenie operacji"/>
+    <bpmn:messageFlow id="MF06_02" sourceRef="T06S_Accept"       targetRef="E06I_Accepted" name="Potwierdzenie przyjęcia"/>
+    <bpmn:messageFlow id="MF06_03" sourceRef="E06S_NotifyAdmin"  targetRef="S06A_Alert"    name="Powiadomienie o niepowodzeniu"/>
+  </bpmn:collaboration>
+
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- PROCESS 1: Inicjator (Administrator / System Najemcy)       -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <bpmn:process id="Proc06_Init" name="Inicjator" isExecutable="false">
+
+    <bpmn:startEvent id="S06I_Start" name="Inicjuje operację&#10;na karcie podarunkowej">
+      <bpmn:outgoing>F06I_01</bpmn:outgoing>
+    </bpmn:startEvent>
+
+    <bpmn:userTask id="T06I_Prepare" name="Przygotowuje zlecenie&#10;operacji">
+      <bpmn:incoming>F06I_01</bpmn:incoming>
+      <bpmn:outgoing>F06I_02</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <bpmn:sendTask id="T06I_Send" name="Przesyła zlecenie&#10;do systemu kart">
+      <bpmn:incoming>F06I_02</bpmn:incoming>
+      <bpmn:outgoing>F06I_03</bpmn:outgoing>
+    </bpmn:sendTask>
+
+    <bpmn:intermediateCatchEvent id="E06I_Accepted" name="Otrzymuje potwierdzenie&#10;przyjęcia zlecenia">
+      <bpmn:incoming>F06I_03</bpmn:incoming>
+      <bpmn:outgoing>F06I_04</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="MED06I_Acc" messageRef="Msg06_Accepted"/>
+    </bpmn:intermediateCatchEvent>
+
+    <bpmn:endEvent id="E06I_End" name="Zlecenie przyjęte&#10;do realizacji w tle">
+      <bpmn:incoming>F06I_04</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:sequenceFlow id="F06I_01" sourceRef="S06I_Start"    targetRef="T06I_Prepare"/>
+    <bpmn:sequenceFlow id="F06I_02" sourceRef="T06I_Prepare"  targetRef="T06I_Send"/>
+    <bpmn:sequenceFlow id="F06I_03" sourceRef="T06I_Send"     targetRef="E06I_Accepted"/>
+    <bpmn:sequenceFlow id="F06I_04" sourceRef="E06I_Accepted" targetRef="E06I_End"/>
+  </bpmn:process>
+
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- PROCESS 2: System Kart Podarunkowych                        -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <bpmn:process id="Proc06_Sys" name="System Kart Podarunkowych" isExecutable="false">
+
+    <bpmn:startEvent id="S06S_Start" name="Odbiera zlecenie&#10;operacji">
+      <bpmn:outgoing>F06S_01</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="MED06S_Start" messageRef="Msg06_Request"/>
+    </bpmn:startEvent>
+
+    <bpmn:serviceTask id="T06S_Accept" name="Przyjmuje zlecenie i natychmiast&#10;odsyła potwierdzenie odbioru –&#10;nie blokuje dalszego działania">
+      <bpmn:incoming>F06S_01</bpmn:incoming>
+      <bpmn:outgoing>F06S_02</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:serviceTask id="T06S_Process" name="Przetwarza zlecenie w tle;&#10;w razie błędu automatycznie&#10;ponawia (maksymalnie 3 próby)">
+      <bpmn:incoming>F06S_02</bpmn:incoming>
+      <bpmn:outgoing>F06S_03</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:exclusiveGateway id="GW06S_Result" name="Przetwarzanie&#10;zakończone pomyślnie?">
+      <bpmn:incoming>F06S_03</bpmn:incoming>
+      <bpmn:outgoing>F06S_Yes</bpmn:outgoing>
+      <bpmn:outgoing>F06S_No</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:serviceTask id="T06S_Update" name="Aktualizuje stan&#10;karty podarunkowej">
+      <bpmn:incoming>F06S_Yes</bpmn:incoming>
+      <bpmn:outgoing>F06S_04</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:endEvent id="E06S_EndOk" name="Zlecenie przetworzone&#10;pomyślnie">
+      <bpmn:incoming>F06S_04</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:serviceTask id="T06S_RegisterFail" name="Rejestruje zlecenie&#10;jako nieudane">
+      <bpmn:incoming>F06S_No</bpmn:incoming>
+      <bpmn:outgoing>F06S_05</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:endEvent id="E06S_NotifyAdmin" name="Powiadamia administratora&#10;o niepowodzeniu">
+      <bpmn:incoming>F06S_05</bpmn:incoming>
+      <bpmn:messageEventDefinition id="MED06S_Alert" messageRef="Msg06_FailureAlert"/>
+    </bpmn:endEvent>
+
+    <bpmn:sequenceFlow id="F06S_01"  sourceRef="S06S_Start"        targetRef="T06S_Accept"/>
+    <bpmn:sequenceFlow id="F06S_02"  sourceRef="T06S_Accept"        targetRef="T06S_Process"/>
+    <bpmn:sequenceFlow id="F06S_03"  sourceRef="T06S_Process"       targetRef="GW06S_Result"/>
+    <bpmn:sequenceFlow id="F06S_Yes" name="Tak"                     sourceRef="GW06S_Result"    targetRef="T06S_Update"/>
+    <bpmn:sequenceFlow id="F06S_No"  name="Nie – wyczerpano próby" sourceRef="GW06S_Result"    targetRef="T06S_RegisterFail"/>
+    <bpmn:sequenceFlow id="F06S_04"  sourceRef="T06S_Update"        targetRef="E06S_EndOk"/>
+    <bpmn:sequenceFlow id="F06S_05"  sourceRef="T06S_RegisterFail"  targetRef="E06S_NotifyAdmin"/>
+  </bpmn:process>
+
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- PROCESS 3: Administrator (obsługa niepowodzeń)              -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <bpmn:process id="Proc06_Admin" name="Administrator" isExecutable="false">
+
+    <bpmn:startEvent id="S06A_Alert" name="Otrzymuje powiadomienie&#10;o nieudanym zleceniu">
+      <bpmn:outgoing>F06A_01</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="MED06A_Alert" messageRef="Msg06_FailureAlert"/>
+    </bpmn:startEvent>
+
+    <bpmn:userTask id="T06A_Review" name="Przegląda szczegóły&#10;nieudanego zlecenia">
+      <bpmn:incoming>F06A_01</bpmn:incoming>
+      <bpmn:outgoing>F06A_02</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <bpmn:exclusiveGateway id="GW06A_Action" name="Jak postąpić&#10;ze zleceniem?">
+      <bpmn:incoming>F06A_02</bpmn:incoming>
+      <bpmn:outgoing>F06A_Retry</bpmn:outgoing>
+      <bpmn:outgoing>F06A_Reject</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:userTask id="T06A_Retry" name="Inicjuje ponowne&#10;przetworzenie zlecenia">
+      <bpmn:incoming>F06A_Retry</bpmn:incoming>
+      <bpmn:outgoing>F06A_03</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <bpmn:userTask id="T06A_Reject" name="Odrzuca zlecenie jako&#10;niemożliwe do realizacji">
+      <bpmn:incoming>F06A_Reject</bpmn:incoming>
+      <bpmn:outgoing>F06A_04</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <bpmn:exclusiveGateway id="GW06A_Merge" name="">
+      <bpmn:incoming>F06A_03</bpmn:incoming>
+      <bpmn:incoming>F06A_04</bpmn:incoming>
+      <bpmn:outgoing>F06A_05</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:endEvent id="E06A_End" name="Nieudane zlecenie&#10;zostało obsłużone">
+      <bpmn:incoming>F06A_05</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:sequenceFlow id="F06A_01"     sourceRef="S06A_Alert"    targetRef="T06A_Review"/>
+    <bpmn:sequenceFlow id="F06A_02"     sourceRef="T06A_Review"   targetRef="GW06A_Action"/>
+    <bpmn:sequenceFlow id="F06A_Retry"  name="Ponów"  sourceRef="GW06A_Action" targetRef="T06A_Retry"/>
+    <bpmn:sequenceFlow id="F06A_Reject" name="Odrzuć" sourceRef="GW06A_Action" targetRef="T06A_Reject"/>
+    <bpmn:sequenceFlow id="F06A_03"     sourceRef="T06A_Retry"    targetRef="GW06A_Merge"/>
+    <bpmn:sequenceFlow id="F06A_04"     sourceRef="T06A_Reject"   targetRef="GW06A_Merge"/>
+    <bpmn:sequenceFlow id="F06A_05"     sourceRef="GW06A_Merge"   targetRef="E06A_End"/>
+  </bpmn:process>
+
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- DI – układ graficzny                                        -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <bpmndi:BPMNDiagram id="BPMNDiagram_PL06">
+    <bpmndi:BPMNPlane id="BPMNPlane_PL06" bpmnElement="Collab_PL06">
+
+      <!-- Pule -->
+      <bpmndi:BPMNShape id="S_P06_Init"  bpmnElement="P06_Init"  isHorizontal="true"><dc:Bounds x="0" y="20"  width="1050" height="160"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S_P06_Sys"   bpmnElement="P06_Sys"   isHorizontal="true"><dc:Bounds x="0" y="200" width="1050" height="320"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S_P06_Admin" bpmnElement="P06_Admin" isHorizontal="true"><dc:Bounds x="0" y="540" width="1050" height="240"/></bpmndi:BPMNShape>
+
+      <!-- ═══ Pool 1: Inicjator (centrum y=100) ═══ -->
+      <bpmndi:BPMNShape id="S_S06I_Start"    bpmnElement="S06I_Start">    <dc:Bounds x="60"  y="82"  width="36"  height="36"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S_T06I_Prepare"  bpmnElement="T06I_Prepare">  <dc:Bounds x="140" y="60"  width="160" height="80"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S_T06I_Send"     bpmnElement="T06I_Send">     <dc:Bounds x="350" y="60"  width="160" height="80"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S_E06I_Accepted" bpmnElement="E06I_Accepted"> <dc:Bounds x="560" y="82"  width="36"  height="36"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S_E06I_End"      bpmnElement="E06I_End">      <dc:Bounds x="650" y="82"  width="36"  height="36"/></bpmndi:BPMNShape>
+
+      <bpmndi:BPMNEdge id="E_F06I_01" bpmnElement="F06I_01"><di:waypoint x="96"  y="100"/><di:waypoint x="140" y="100"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E_F06I_02" bpmnElement="F06I_02"><di:waypoint x="300" y="100"/><di:waypoint x="350" y="100"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E_F06I_03" bpmnElement="F06I_03"><di:waypoint x="510" y="100"/><di:waypoint x="560" y="100"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E_F06I_04" bpmnElement="F06I_04"><di:waypoint x="596" y="100"/><di:waypoint x="650" y="100"/></bpmndi:BPMNEdge>
+
+      <!-- ═══ Pool 2: System (ścieżka główna y=300, ścieżka błędu y=430) ═══ -->
+      <bpmndi:BPMNShape id="S_S06S_Start"        bpmnElement="S06S_Start">        <dc:Bounds x="60"  y="282" width="36"  height="36"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S_T06S_Accept"        bpmnElement="T06S_Accept">       <dc:Bounds x="140" y="260" width="200" height="80"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S_T06S_Process"       bpmnElement="T06S_Process">      <dc:Bounds x="390" y="260" width="200" height="80"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S_GW06S_Result"       bpmnElement="GW06S_Result" isMarkerVisible="true"><dc:Bounds x="640" y="275" width="50" height="50"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S_T06S_Update"        bpmnElement="T06S_Update">       <dc:Bounds x="740" y="260" width="200" height="80"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S_E06S_EndOk"         bpmnElement="E06S_EndOk">        <dc:Bounds x="980" y="282" width="36"  height="36"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S_T06S_RegisterFail"  bpmnElement="T06S_RegisterFail"> <dc:Bounds x="640" y="390" width="200" height="80"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S_E06S_NotifyAdmin"   bpmnElement="E06S_NotifyAdmin">  <dc:Bounds x="890" y="412" width="36"  height="36"/></bpmndi:BPMNShape>
+
+      <bpmndi:BPMNEdge id="E_F06S_01"  bpmnElement="F06S_01">  <di:waypoint x="96"  y="300"/><di:waypoint x="140" y="300"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E_F06S_02"  bpmnElement="F06S_02">  <di:waypoint x="340" y="300"/><di:waypoint x="390" y="300"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E_F06S_03"  bpmnElement="F06S_03">  <di:waypoint x="590" y="300"/><di:waypoint x="640" y="300"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E_F06S_Yes" bpmnElement="F06S_Yes"> <di:waypoint x="690" y="300"/><di:waypoint x="740" y="300"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E_F06S_No"  bpmnElement="F06S_No">  <di:waypoint x="665" y="325"/><di:waypoint x="665" y="390"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E_F06S_04"  bpmnElement="F06S_04">  <di:waypoint x="940" y="300"/><di:waypoint x="980" y="300"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E_F06S_05"  bpmnElement="F06S_05">  <di:waypoint x="840" y="430"/><di:waypoint x="890" y="430"/></bpmndi:BPMNEdge>
+
+      <!-- ═══ Pool 3: Administrator (centrum y=660) ═══ -->
+      <bpmndi:BPMNShape id="S_S06A_Alert"   bpmnElement="S06A_Alert">   <dc:Bounds x="60"  y="642" width="36"  height="36"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S_T06A_Review"  bpmnElement="T06A_Review">  <dc:Bounds x="140" y="620" width="200" height="80"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S_GW06A_Action" bpmnElement="GW06A_Action" isMarkerVisible="true"><dc:Bounds x="390" y="635" width="50" height="50"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S_T06A_Retry"   bpmnElement="T06A_Retry">   <dc:Bounds x="490" y="590" width="200" height="80"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S_T06A_Reject"  bpmnElement="T06A_Reject">  <dc:Bounds x="490" y="690" width="200" height="80"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S_GW06A_Merge"  bpmnElement="GW06A_Merge" isMarkerVisible="true"><dc:Bounds x="740" y="635" width="50" height="50"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S_E06A_End"     bpmnElement="E06A_End">     <dc:Bounds x="840" y="642" width="36"  height="36"/></bpmndi:BPMNShape>
+
+      <bpmndi:BPMNEdge id="E_F06A_01"     bpmnElement="F06A_01">     <di:waypoint x="96"  y="660"/><di:waypoint x="140" y="660"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E_F06A_02"     bpmnElement="F06A_02">     <di:waypoint x="340" y="660"/><di:waypoint x="390" y="660"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E_F06A_Retry"  bpmnElement="F06A_Retry">  <di:waypoint x="440" y="660"/><di:waypoint x="440" y="630"/><di:waypoint x="490" y="630"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E_F06A_Reject" bpmnElement="F06A_Reject"> <di:waypoint x="415" y="685"/><di:waypoint x="415" y="730"/><di:waypoint x="490" y="730"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E_F06A_03"     bpmnElement="F06A_03">     <di:waypoint x="690" y="630"/><di:waypoint x="715" y="630"/><di:waypoint x="715" y="660"/><di:waypoint x="740" y="660"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E_F06A_04"     bpmnElement="F06A_04">     <di:waypoint x="690" y="730"/><di:waypoint x="765" y="730"/><di:waypoint x="765" y="685"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E_F06A_05"     bpmnElement="F06A_05">     <di:waypoint x="790" y="660"/><di:waypoint x="840" y="660"/></bpmndi:BPMNEdge>
+
+      <!-- ═══ Przepływy wiadomości ═══ -->
+
+      <!-- MF06_01: T06I_Send → S06S_Start (Pool 1 → Pool 2) -->
+      <bpmndi:BPMNEdge id="E_MF06_01" bpmnElement="MF06_01">
+        <di:waypoint x="430" y="140"/>
+        <di:waypoint x="430" y="200"/>
+        <di:waypoint x="78"  y="200"/>
+        <di:waypoint x="78"  y="282"/>
+      </bpmndi:BPMNEdge>
+
+      <!-- MF06_02: T06S_Accept → E06I_Accepted (Pool 2 → Pool 1) -->
+      <bpmndi:BPMNEdge id="E_MF06_02" bpmnElement="MF06_02">
+        <di:waypoint x="240" y="260"/>
+        <di:waypoint x="240" y="180"/>
+        <di:waypoint x="578" y="180"/>
+        <di:waypoint x="578" y="118"/>
+      </bpmndi:BPMNEdge>
+
+      <!-- MF06_03: E06S_NotifyAdmin → S06A_Alert (Pool 2 → Pool 3) -->
+      <bpmndi:BPMNEdge id="E_MF06_03" bpmnElement="MF06_03">
+        <di:waypoint x="908" y="448"/>
+        <di:waypoint x="908" y="540"/>
+        <di:waypoint x="78"  y="540"/>
+        <di:waypoint x="78"  y="642"/>
+      </bpmndi:BPMNEdge>
+
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+
+</bpmn:definitions>

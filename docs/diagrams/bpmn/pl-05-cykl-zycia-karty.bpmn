@@ -1,0 +1,308 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+                  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+                  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+                  id="Defs_PL05" targetNamespace="https://giftcard.local/bpmn/pl05">
+
+  <bpmn:message id="Msg05_AdminCmd"  name="Żądanie zmiany stanu karty"/>
+  <bpmn:message id="Msg05_OpResult"  name="Wynik operacji na karcie"/>
+
+  <bpmn:collaboration id="Collab_PL05">
+    <bpmn:participant id="P05_Admin"  name="Administrator" processRef="Proc05_Admin"/>
+    <bpmn:participant id="P05_System" name="System Kart Podarunkowych" processRef="Proc05_System"/>
+
+    <bpmn:messageFlow id="MF05_01" sourceRef="T05A_SendOp"  targetRef="S05S_Start"       name="Żądanie operacji"/>
+    <bpmn:messageFlow id="MF05_02" sourceRef="T05S_Respond" targetRef="E05A_WaitResult"  name="Wynik operacji"/>
+  </bpmn:collaboration>
+
+  <!-- ═══ ADMINISTRATOR ═══ -->
+  <bpmn:process id="Proc05_Admin" isExecutable="false">
+
+    <bpmn:startEvent id="S05A_Start" name="Otwiera szczegóły&#10;karty podarunkowej">
+      <bpmn:outgoing>F05A_01</bpmn:outgoing>
+    </bpmn:startEvent>
+
+    <!-- Admin wybiera operację -->
+    <bpmn:exclusiveGateway id="GW05A_Choose" name="Wybiera&#10;operację">
+      <bpmn:incoming>F05A_01</bpmn:incoming>
+      <bpmn:outgoing>F05A_Suspend</bpmn:outgoing>
+      <bpmn:outgoing>F05A_Reactivate</bpmn:outgoing>
+      <bpmn:outgoing>F05A_Cancel</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:userTask id="T05A_Suspend" name="Zawiesza kartę&#10;(podaje powód)">
+      <bpmn:incoming>F05A_Suspend</bpmn:incoming>
+      <bpmn:outgoing>F05A_S2</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <bpmn:userTask id="T05A_Reactivate" name="Reaktywuje kartę&#10;(wznawia ważność)">
+      <bpmn:incoming>F05A_Reactivate</bpmn:incoming>
+      <bpmn:outgoing>F05A_R2</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <bpmn:userTask id="T05A_Cancel" name="Anuluje kartę&#10;(podaje powód)">
+      <bpmn:incoming>F05A_Cancel</bpmn:incoming>
+      <bpmn:outgoing>F05A_C2</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <!-- Scalenie ścieżek przed wysłaniem -->
+    <bpmn:exclusiveGateway id="GW05A_Merge" name="">
+      <bpmn:incoming>F05A_S2</bpmn:incoming>
+      <bpmn:incoming>F05A_R2</bpmn:incoming>
+      <bpmn:incoming>F05A_C2</bpmn:incoming>
+      <bpmn:outgoing>F05A_Send</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:serviceTask id="T05A_SendOp" name="Wysyła żądanie&#10;do systemu">
+      <bpmn:incoming>F05A_Send</bpmn:incoming>
+      <bpmn:outgoing>F05A_02</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:intermediateCatchEvent id="E05A_WaitResult" name="Otrzymuje potwierdzenie&#10;lub komunikat błędu">
+      <bpmn:incoming>F05A_02</bpmn:incoming>
+      <bpmn:outgoing>F05A_03</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="MED05A_Res" messageRef="Msg05_OpResult"/>
+    </bpmn:intermediateCatchEvent>
+
+    <bpmn:endEvent id="E05A_End" name="Stan karty&#10;zaktualizowany">
+      <bpmn:incoming>F05A_03</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:sequenceFlow id="F05A_01"         sourceRef="S05A_Start"        targetRef="GW05A_Choose"/>
+    <bpmn:sequenceFlow id="F05A_Suspend"    name="Zawieszenie"  sourceRef="GW05A_Choose" targetRef="T05A_Suspend"/>
+    <bpmn:sequenceFlow id="F05A_Reactivate" name="Reaktywacja"  sourceRef="GW05A_Choose" targetRef="T05A_Reactivate"/>
+    <bpmn:sequenceFlow id="F05A_Cancel"     name="Anulowanie"   sourceRef="GW05A_Choose" targetRef="T05A_Cancel"/>
+    <bpmn:sequenceFlow id="F05A_S2"         sourceRef="T05A_Suspend"       targetRef="GW05A_Merge"/>
+    <bpmn:sequenceFlow id="F05A_R2"         sourceRef="T05A_Reactivate"    targetRef="GW05A_Merge"/>
+    <bpmn:sequenceFlow id="F05A_C2"         sourceRef="T05A_Cancel"        targetRef="GW05A_Merge"/>
+    <bpmn:sequenceFlow id="F05A_Send"       sourceRef="GW05A_Merge"        targetRef="T05A_SendOp"/>
+    <bpmn:sequenceFlow id="F05A_02"         sourceRef="T05A_SendOp"        targetRef="E05A_WaitResult"/>
+    <bpmn:sequenceFlow id="F05A_03"         sourceRef="E05A_WaitResult"    targetRef="E05A_End"/>
+  </bpmn:process>
+
+  <!-- ═══ SYSTEM KART PODARUNKOWYCH ═══ -->
+  <bpmn:process id="Proc05_System" isExecutable="false">
+
+    <bpmn:startEvent id="S05S_Start" name="Żądanie operacji&#10;odebrane">
+      <bpmn:outgoing>F05S_01</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="MED05S_Start" messageRef="Msg05_AdminCmd"/>
+    </bpmn:startEvent>
+
+    <bpmn:serviceTask id="T05S_CheckCard" name="Odczytuje aktualny&#10;stan karty">
+      <bpmn:incoming>F05S_01</bpmn:incoming>
+      <bpmn:outgoing>F05S_02</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <!-- Rozgałęzienie na 3 ścieżki operacyjne + 1 automatyczna -->
+    <bpmn:exclusiveGateway id="GW05S_OpType" name="Typ&#10;operacji?">
+      <bpmn:incoming>F05S_02</bpmn:incoming>
+      <bpmn:outgoing>F05S_Suspend</bpmn:outgoing>
+      <bpmn:outgoing>F05S_Reactivate</bpmn:outgoing>
+      <bpmn:outgoing>F05S_Cancel</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <!-- ─── Zawieszenie ─── -->
+    <bpmn:serviceTask id="T05S_Suspend" name="Zawiesza kartę&#10;(wymaga statusu AKTYWNA)">
+      <bpmn:incoming>F05S_Suspend</bpmn:incoming>
+      <bpmn:outgoing>F05S_S2</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:boundaryEvent id="E05S_ErrSuspend" name="Nieprawidłowy&#10;status karty"
+                        attachedToRef="T05S_Suspend" cancelActivity="true">
+      <bpmn:outgoing>F05S_ErrS</bpmn:outgoing>
+      <bpmn:errorEventDefinition id="EED05S_Sus"/>
+    </bpmn:boundaryEvent>
+
+    <bpmn:endEvent id="E05S_ErrSusEnd" name="Błąd: karta&#10;nie jest aktywna">
+      <bpmn:incoming>F05S_ErrS</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <!-- ─── Reaktywacja ─── -->
+    <bpmn:serviceTask id="T05S_Reactivate" name="Reaktywuje kartę&#10;(wymaga statusu ZAWIESZONA)">
+      <bpmn:incoming>F05S_Reactivate</bpmn:incoming>
+      <bpmn:outgoing>F05S_R2</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:boundaryEvent id="E05S_ErrReact" name="Nieprawidłowy&#10;status karty"
+                        attachedToRef="T05S_Reactivate" cancelActivity="true">
+      <bpmn:outgoing>F05S_ErrR</bpmn:outgoing>
+      <bpmn:errorEventDefinition id="EED05S_React"/>
+    </bpmn:boundaryEvent>
+
+    <bpmn:endEvent id="E05S_ErrReactEnd" name="Błąd: karta&#10;nie jest zawieszona">
+      <bpmn:incoming>F05S_ErrR</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <!-- ─── Anulowanie ─── -->
+    <bpmn:serviceTask id="T05S_Cancel" name="Anuluje kartę&#10;(wymaga statusu AKTYWNA lub ZAWIESZONA)">
+      <bpmn:incoming>F05S_Cancel</bpmn:incoming>
+      <bpmn:outgoing>F05S_C2</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:boundaryEvent id="E05S_ErrCancel" name="Nieprawidłowy&#10;status karty"
+                        attachedToRef="T05S_Cancel" cancelActivity="true">
+      <bpmn:outgoing>F05S_ErrC</bpmn:outgoing>
+      <bpmn:errorEventDefinition id="EED05S_Can"/>
+    </bpmn:boundaryEvent>
+
+    <bpmn:endEvent id="E05S_ErrCanEnd" name="Błąd: karta&#10;w niedozwolonym stanie">
+      <bpmn:incoming>F05S_ErrC</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <!-- Scalenie po wykonaniu operacji -->
+    <bpmn:exclusiveGateway id="GW05S_Merge" name="">
+      <bpmn:incoming>F05S_S2</bpmn:incoming>
+      <bpmn:incoming>F05S_R2</bpmn:incoming>
+      <bpmn:incoming>F05S_C2</bpmn:incoming>
+      <bpmn:outgoing>F05S_03</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:serviceTask id="T05S_UpdateState" name="Aktualizuje stan&#10;karty w systemie">
+      <bpmn:incoming>F05S_03</bpmn:incoming>
+      <bpmn:outgoing>F05S_04</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:serviceTask id="T05S_Respond" name="Wysyła potwierdzenie&#10;do administratora">
+      <bpmn:incoming>F05S_04</bpmn:incoming>
+      <bpmn:outgoing>F05S_05</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:endEvent id="E05S_End" name="Operacja&#10;zakończona">
+      <bpmn:incoming>F05S_05</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <!-- ─── Wygaśnięcie automatyczne (osobny wątek) ─── -->
+    <bpmn:startEvent id="S05S_TimerStart" name="Automatyczne sprawdzanie&#10;kart wygasłych (cykliczne)">
+      <bpmn:outgoing>F05S_T01</bpmn:outgoing>
+      <bpmn:timerEventDefinition id="TED05S_Timer">
+        <bpmn:timeCycle>R/PT1H</bpmn:timeCycle>
+      </bpmn:timerEventDefinition>
+    </bpmn:startEvent>
+
+    <bpmn:serviceTask id="T05S_FindExpired" name="Wyszukuje aktywne karty&#10;z przekroczoną datą ważności">
+      <bpmn:incoming>F05S_T01</bpmn:incoming>
+      <bpmn:outgoing>F05S_T02</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:serviceTask id="T05S_ExpireCards" name="Oznacza znalezione karty&#10;jako WYGASŁE">
+      <bpmn:incoming>F05S_T02</bpmn:incoming>
+      <bpmn:outgoing>F05S_T03</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:endEvent id="E05S_ExpireEnd" name="Karty wygasłe&#10;zaktualizowane">
+      <bpmn:incoming>F05S_T03</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:sequenceFlow id="F05S_01"         sourceRef="S05S_Start"         targetRef="T05S_CheckCard"/>
+    <bpmn:sequenceFlow id="F05S_02"         sourceRef="T05S_CheckCard"     targetRef="GW05S_OpType"/>
+    <bpmn:sequenceFlow id="F05S_Suspend"    name="Zawieszenie"  sourceRef="GW05S_OpType" targetRef="T05S_Suspend"/>
+    <bpmn:sequenceFlow id="F05S_Reactivate" name="Reaktywacja"  sourceRef="GW05S_OpType" targetRef="T05S_Reactivate"/>
+    <bpmn:sequenceFlow id="F05S_Cancel"     name="Anulowanie"   sourceRef="GW05S_OpType" targetRef="T05S_Cancel"/>
+    <bpmn:sequenceFlow id="F05S_S2"         sourceRef="T05S_Suspend"       targetRef="GW05S_Merge"/>
+    <bpmn:sequenceFlow id="F05S_ErrS"       sourceRef="E05S_ErrSuspend"    targetRef="E05S_ErrSusEnd"/>
+    <bpmn:sequenceFlow id="F05S_R2"         sourceRef="T05S_Reactivate"    targetRef="GW05S_Merge"/>
+    <bpmn:sequenceFlow id="F05S_ErrR"       sourceRef="E05S_ErrReact"      targetRef="E05S_ErrReactEnd"/>
+    <bpmn:sequenceFlow id="F05S_C2"         sourceRef="T05S_Cancel"        targetRef="GW05S_Merge"/>
+    <bpmn:sequenceFlow id="F05S_ErrC"       sourceRef="E05S_ErrCancel"     targetRef="E05S_ErrCanEnd"/>
+    <bpmn:sequenceFlow id="F05S_03"         sourceRef="GW05S_Merge"        targetRef="T05S_UpdateState"/>
+    <bpmn:sequenceFlow id="F05S_04"         sourceRef="T05S_UpdateState"   targetRef="T05S_Respond"/>
+    <bpmn:sequenceFlow id="F05S_05"         sourceRef="T05S_Respond"       targetRef="E05S_End"/>
+    <bpmn:sequenceFlow id="F05S_T01"        sourceRef="S05S_TimerStart"    targetRef="T05S_FindExpired"/>
+    <bpmn:sequenceFlow id="F05S_T02"        sourceRef="T05S_FindExpired"   targetRef="T05S_ExpireCards"/>
+    <bpmn:sequenceFlow id="F05S_T03"        sourceRef="T05S_ExpireCards"   targetRef="E05S_ExpireEnd"/>
+  </bpmn:process>
+
+  <!-- ═══ DIAGRAM INTERCHANGE ═══ -->
+  <bpmndi:BPMNDiagram id="BPMNDiag_PL05">
+    <bpmndi:BPMNPlane id="BPMNPlane_PL05" bpmnElement="Collab_PL05">
+
+      <!-- Pule -->
+      <bpmndi:BPMNShape id="SH_P05_Admin"  bpmnElement="P05_Admin"  isHorizontal="true">
+        <dc:Bounds x="100" y="20"  width="1300" height="230"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="SH_P05_System" bpmnElement="P05_System" isHorizontal="true">
+        <dc:Bounds x="100" y="270" width="1300" height="500"/>
+      </bpmndi:BPMNShape>
+
+      <!-- Administrator (środek y=135) -->
+      <bpmndi:BPMNShape id="SH_S05A_Start"    bpmnElement="S05A_Start">       <dc:Bounds x="162" y="117" width="36"  height="36"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="SH_GW05A_Choose"  bpmnElement="GW05A_Choose" isMarkerVisible="true"><dc:Bounds x="248" y="110" width="50"  height="50"/></bpmndi:BPMNShape>
+      <!-- 3 gałęzie: y=60, y=135, y=200 -->
+      <bpmndi:BPMNShape id="SH_T05A_Suspend"  bpmnElement="T05A_Suspend">     <dc:Bounds x="348" y="40"  width="140" height="80"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="SH_T05A_Reactiv"  bpmnElement="T05A_Reactivate">  <dc:Bounds x="348" y="120" width="140" height="80"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="SH_T05A_Cancel"   bpmnElement="T05A_Cancel">      <dc:Bounds x="348" y="200" width="140" height="80"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="SH_GW05A_Merge"   bpmnElement="GW05A_Merge" isMarkerVisible="true"><dc:Bounds x="548" y="110" width="50"  height="50"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="SH_T05A_SendOp"   bpmnElement="T05A_SendOp">      <dc:Bounds x="648" y="95"  width="140" height="80"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="SH_E05A_Wait"     bpmnElement="E05A_WaitResult">  <dc:Bounds x="838" y="117" width="36"  height="36"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="SH_E05A_End"      bpmnElement="E05A_End">         <dc:Bounds x="924" y="117" width="36"  height="36"/></bpmndi:BPMNShape>
+
+      <bpmndi:BPMNEdge id="E_F05A_01"         bpmnElement="F05A_01">        <di:waypoint x="198" y="135"/><di:waypoint x="248" y="135"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E_F05A_Suspend"    bpmnElement="F05A_Suspend">   <di:waypoint x="273" y="110"/><di:waypoint x="273" y="80"/><di:waypoint x="348" y="80"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E_F05A_Reactivate" bpmnElement="F05A_Reactivate"><di:waypoint x="273" y="135"/><di:waypoint x="348" y="160"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E_F05A_Cancel"     bpmnElement="F05A_Cancel">    <di:waypoint x="273" y="160"/><di:waypoint x="273" y="240"/><di:waypoint x="348" y="240"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E_F05A_S2"         bpmnElement="F05A_S2">        <di:waypoint x="488" y="80"/><di:waypoint x="573" y="80"/><di:waypoint x="573" y="110"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E_F05A_R2"         bpmnElement="F05A_R2">        <di:waypoint x="488" y="160"/><di:waypoint x="573" y="160"/><di:waypoint x="573" y="160"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E_F05A_C2"         bpmnElement="F05A_C2">        <di:waypoint x="488" y="240"/><di:waypoint x="573" y="240"/><di:waypoint x="573" y="160"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E_F05A_Send"       bpmnElement="F05A_Send">      <di:waypoint x="598" y="135"/><di:waypoint x="648" y="135"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E_F05A_02"         bpmnElement="F05A_02">        <di:waypoint x="788" y="135"/><di:waypoint x="838" y="135"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E_F05A_03"         bpmnElement="F05A_03">        <di:waypoint x="874" y="135"/><di:waypoint x="924" y="135"/></bpmndi:BPMNEdge>
+
+      <!-- System – ścieżka admin-initiated (oś y=430) -->
+      <bpmndi:BPMNShape id="SH_S05S_Start"    bpmnElement="S05S_Start">        <dc:Bounds x="162" y="412" width="36"  height="36"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="SH_T05S_Check"    bpmnElement="T05S_CheckCard">    <dc:Bounds x="248" y="390" width="150" height="80"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="SH_GW05S_OpType"  bpmnElement="GW05S_OpType" isMarkerVisible="true"><dc:Bounds x="448" y="405" width="50"  height="50"/></bpmndi:BPMNShape>
+      <!-- 3 ścieżki: y=340, y=430, y=520 -->
+      <bpmndi:BPMNShape id="SH_T05S_Suspend"  bpmnElement="T05S_Suspend">      <dc:Bounds x="548" y="310" width="170" height="80"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="SH_E05S_ErrSus"   bpmnElement="E05S_ErrSuspend">   <dc:Bounds x="620" y="372" width="36"  height="36"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="SH_E05S_ErrSusEnd" bpmnElement="E05S_ErrSusEnd">   <dc:Bounds x="710" y="372" width="36"  height="36"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="SH_T05S_Reactiv"  bpmnElement="T05S_Reactivate">   <dc:Bounds x="548" y="410" width="170" height="80"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="SH_E05S_ErrReact" bpmnElement="E05S_ErrReact">     <dc:Bounds x="620" y="472" width="36"  height="36"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="SH_E05S_ErrReactEnd" bpmnElement="E05S_ErrReactEnd"><dc:Bounds x="710" y="472" width="36"  height="36"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="SH_T05S_Cancel"   bpmnElement="T05S_Cancel">       <dc:Bounds x="548" y="510" width="170" height="80"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="SH_E05S_ErrCan"   bpmnElement="E05S_ErrCancel">    <dc:Bounds x="620" y="572" width="36"  height="36"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="SH_E05S_ErrCanEnd" bpmnElement="E05S_ErrCanEnd">   <dc:Bounds x="710" y="572" width="36"  height="36"/></bpmndi:BPMNShape>
+      <!-- Scalenie -->
+      <bpmndi:BPMNShape id="SH_GW05S_Merge"   bpmnElement="GW05S_Merge" isMarkerVisible="true"><dc:Bounds x="778" y="405" width="50"  height="50"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="SH_T05S_Update"   bpmnElement="T05S_UpdateState">  <dc:Bounds x="878" y="390" width="150" height="80"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="SH_T05S_Respond"  bpmnElement="T05S_Respond">      <dc:Bounds x="1078" y="390" width="150" height="80"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="SH_E05S_End"      bpmnElement="E05S_End">          <dc:Bounds x="1278" y="412" width="36"  height="36"/></bpmndi:BPMNShape>
+
+      <!-- System – wygaśnięcie automatyczne (dolna oś y=660) -->
+      <bpmndi:BPMNShape id="SH_S05S_Timer"    bpmnElement="S05S_TimerStart">   <dc:Bounds x="162" y="642" width="36"  height="36"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="SH_T05S_FindExp"  bpmnElement="T05S_FindExpired">  <dc:Bounds x="248" y="620" width="160" height="80"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="SH_T05S_ExpCards" bpmnElement="T05S_ExpireCards">  <dc:Bounds x="458" y="620" width="170" height="80"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="SH_E05S_ExpEnd"   bpmnElement="E05S_ExpireEnd">    <dc:Bounds x="678" y="642" width="36"  height="36"/></bpmndi:BPMNShape>
+
+      <!-- Krawędzie System – ścieżka operacyjna -->
+      <bpmndi:BPMNEdge id="E_F05S_01"         bpmnElement="F05S_01">        <di:waypoint x="198" y="430"/><di:waypoint x="248" y="430"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E_F05S_02"         bpmnElement="F05S_02">        <di:waypoint x="398" y="430"/><di:waypoint x="448" y="430"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E_F05S_Suspend"    bpmnElement="F05S_Suspend">   <di:waypoint x="473" y="405"/><di:waypoint x="473" y="350"/><di:waypoint x="548" y="350"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E_F05S_Reactivate" bpmnElement="F05S_Reactivate"><di:waypoint x="473" y="430"/><di:waypoint x="548" y="450"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E_F05S_Cancel"     bpmnElement="F05S_Cancel">    <di:waypoint x="473" y="455"/><di:waypoint x="473" y="550"/><di:waypoint x="548" y="550"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E_F05S_S2"         bpmnElement="F05S_S2">        <di:waypoint x="718" y="350"/><di:waypoint x="803" y="350"/><di:waypoint x="803" y="405"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E_F05S_ErrS"       bpmnElement="F05S_ErrS">      <di:waypoint x="638" y="408"/><di:waypoint x="728" y="390"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E_F05S_R2"         bpmnElement="F05S_R2">        <di:waypoint x="718" y="450"/><di:waypoint x="803" y="430"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E_F05S_ErrR"       bpmnElement="F05S_ErrR">      <di:waypoint x="638" y="508"/><di:waypoint x="728" y="490"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E_F05S_C2"         bpmnElement="F05S_C2">        <di:waypoint x="718" y="550"/><di:waypoint x="803" y="550"/><di:waypoint x="803" y="455"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E_F05S_ErrC"       bpmnElement="F05S_ErrC">      <di:waypoint x="638" y="608"/><di:waypoint x="728" y="590"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E_F05S_03"         bpmnElement="F05S_03">        <di:waypoint x="828" y="430"/><di:waypoint x="878" y="430"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E_F05S_04"         bpmnElement="F05S_04">        <di:waypoint x="1028" y="430"/><di:waypoint x="1078" y="430"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E_F05S_05"         bpmnElement="F05S_05">        <di:waypoint x="1228" y="430"/><di:waypoint x="1278" y="430"/></bpmndi:BPMNEdge>
+
+      <!-- Krawędzie System – wygaśnięcie -->
+      <bpmndi:BPMNEdge id="E_F05S_T01" bpmnElement="F05S_T01"><di:waypoint x="198" y="660"/><di:waypoint x="248" y="660"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E_F05S_T02" bpmnElement="F05S_T02"><di:waypoint x="408" y="660"/><di:waypoint x="458" y="660"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E_F05S_T03" bpmnElement="F05S_T03"><di:waypoint x="628" y="660"/><di:waypoint x="678" y="660"/></bpmndi:BPMNEdge>
+
+      <!-- Przepływy wiadomości -->
+      <bpmndi:BPMNEdge id="E_MF05_01" bpmnElement="MF05_01">
+        <di:waypoint x="718" y="175"/><di:waypoint x="718" y="270"/><di:waypoint x="180" y="270"/><di:waypoint x="180" y="412"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E_MF05_02" bpmnElement="MF05_02">
+        <di:waypoint x="1153" y="390"/><di:waypoint x="1153" y="270"/><di:waypoint x="856" y="270"/><di:waypoint x="856" y="153"/>
+      </bpmndi:BPMNEdge>
+
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

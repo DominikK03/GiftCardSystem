@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'DejaVu Sans', sans-serif;
+            font-size: 10pt;
+            line-height: 1.5;
+            color: #333;
+            padding: 30px;
+        }
+        .invoice-header {
+            text-align: center;
+            margin-bottom: 15px;
+        }
+        .invoice-header h1 {
+            font-size: 16pt;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        .invoice-header .invoice-number {
+            font-size: 10pt;
+            color: #555;
+            margin-top: 3px;
+        }
+        .invoice-meta {
+            text-align: right;
+            margin-bottom: 15px;
+            font-size: 8pt;
+        }
+        .invoice-meta p {
+            margin-bottom: 2px;
+        }
+        .parties {
+            width: 100%;
+            margin-bottom: 15px;
+        }
+        .parties table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .parties td {
+            width: 48%;
+            vertical-align: top;
+            padding: 8px;
+        }
+        .party-title {
+            font-size: 7pt;
+            text-transform: uppercase;
+            color: #888;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        .party-info {
+            font-size: 8pt;
+            margin-bottom: 2px;
+        }
+        .items-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 10px;
+            font-size: 7.5pt;
+            table-layout: fixed;
+        }
+        .items-table th {
+            background: #f0f0f0;
+            border: 1px solid #ccc;
+            padding: 3px 4px;
+            text-align: left;
+            font-size: 6.5pt;
+            text-transform: uppercase;
+            color: #555;
+            overflow: hidden;
+        }
+        .items-table td {
+            border: 1px solid #ccc;
+            padding: 3px 4px;
+            overflow: hidden;
+        }
+        .items-table .number {
+            text-align: center;
+        }
+        .items-table .amount {
+            text-align: right;
+        }
+        .summary-table {
+            width: 45%;
+            margin-left: 55%;
+            border-collapse: collapse;
+            margin-bottom: 10px;
+        }
+        .summary-table td {
+            padding: 3px 6px;
+            font-size: 8pt;
+            border: 1px solid #ccc;
+        }
+        .summary-table .label {
+            text-align: right;
+            background: #f9f9f9;
+            font-weight: bold;
+        }
+        .summary-table .value {
+            text-align: right;
+            width: 120px;
+        }
+        .summary-table .total td {
+            font-size: 9pt;
+            font-weight: bold;
+            background: #f0f0f0;
+        }
+        .payment-info {
+            margin-top: 10px;
+            padding: 8px;
+            border: 1px solid #ddd;
+            background: #fafafa;
+            font-size: 8pt;
+        }
+        .payment-info h3 {
+            font-size: 8pt;
+            margin-bottom: 4px;
+            color: #555;
+        }
+        .payment-info p {
+            margin-bottom: 2px;
+        }
+        .footer {
+            margin-top: 25px;
+        }
+        .footer table {
+            width: 100%;
+        }
+        .footer td {
+            width: 45%;
+            text-align: center;
+        }
+        .footer .signature-line {
+            border-top: 1px solid #333;
+            margin-top: 30px;
+            padding-top: 4px;
+            font-size: 7pt;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+
+<div class="invoice-header">
+    <h1>{{ 'document.invoice.title'|trans({}, 'ui') }}</h1>
+    <div class="invoice-number">{{ 'document.invoice.number'|trans({'%number%': invoiceNumber}, 'ui') }}</div>
+</div>
+
+<div class="invoice-meta">
+    <p>{{ 'document.invoice.issue_date'|trans({}, 'ui') }} {{ date|date('d.m.Y') }}</p>
+    <p>{{ 'document.invoice.sale_date'|trans({}, 'ui') }} {{ date|date('d.m.Y') }}</p>
+    <p>{{ 'document.invoice.due_date'|trans({}, 'ui') }} {{ date|date_modify('+14 days')|date('d.m.Y') }}</p>
+</div>
+
+<div class="parties">
+    <table>
+        <tr>
+            <td>
+                <div class="party-title">{{ 'document.invoice.seller'|trans({}, 'ui') }}</div>
+                <p class="party-info"><strong>GiftCard System Sp. z o.o.</strong></p>
+                <p class="party-info">ul. Przykładowa 1</p>
+                <p class="party-info">00-001 Warszawa</p>
+                <p class="party-info">NIP: 1234567890</p>
+            </td>
+            <td>
+                <div class="party-title">{{ 'document.invoice.buyer'|trans({}, 'ui') }}</div>
+                <p class="party-info"><strong>{{ tenant.name }}</strong></p>
+                <p class="party-info">{{ tenant.address.street }}</p>
+                <p class="party-info">{{ tenant.address.postalCode }} {{ tenant.address.city }}</p>
+                <p class="party-info">NIP: {{ tenant.nip }}</p>
+            </td>
+        </tr>
+    </table>
+</div>
+
+<table class="items-table">
+    <colgroup>
+        <col style="width:4%;">
+        <col style="width:26%;">
+        <col style="width:6%;">
+        <col style="width:13%;">
+        <col style="width:14%;">
+        <col style="width:6%;">
+        <col style="width:13%;">
+        <col style="width:14%;">
+    </colgroup>
+    <thead>
+        <tr>
+            <th class="number">{{ 'document.invoice.col_no'|trans({}, 'ui') }}</th>
+            <th>{{ 'document.invoice.col_name'|trans({}, 'ui') }}</th>
+            <th class="amount">{{ 'document.invoice.col_quantity'|trans({}, 'ui') }}</th>
+            <th class="amount">{{ 'document.invoice.col_unit_price'|trans({}, 'ui') }}</th>
+            <th class="amount">{{ 'document.invoice.col_net_value'|trans({}, 'ui') }}</th>
+            <th class="amount">{{ 'document.invoice.col_vat'|trans({}, 'ui') }}</th>
+            <th class="amount">{{ 'document.invoice.col_vat_amount'|trans({}, 'ui') }}</th>
+            <th class="amount">{{ 'document.invoice.col_gross'|trans({}, 'ui') }}</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for item in items %}
+        <tr>
+            <td class="number">{{ loop.index }}</td>
+            <td>{{ item.description }}</td>
+            <td class="amount">{{ item.quantity }}</td>
+            <td class="amount">{{ (item.unitPriceAmount / 100)|number_format(2, ',', ' ') }}</td>
+            <td class="amount">{{ (item.netto / 100)|number_format(2, ',', ' ') }}</td>
+            <td class="amount">{{ vatRate }}%</td>
+            <td class="amount">{{ (item.vatAmount / 100)|number_format(2, ',', ' ') }}</td>
+            <td class="amount">{{ (item.brutto / 100)|number_format(2, ',', ' ') }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<table class="summary-table">
+    <tr>
+        <td class="label">{{ 'document.invoice.total_net'|trans({}, 'ui') }}</td>
+        <td class="value">{{ (nettoTotal / 100)|number_format(2, ',', ' ') }} {{ currency }}</td>
+    </tr>
+    <tr>
+        <td class="label">{{ 'document.invoice.total_vat'|trans({'%rate%': vatRate}, 'ui') }}</td>
+        <td class="value">{{ (vatTotal / 100)|number_format(2, ',', ' ') }} {{ currency }}</td>
+    </tr>
+    <tr class="total">
+        <td class="label">{{ 'document.invoice.total_gross'|trans({}, 'ui') }}</td>
+        <td class="value">{{ (bruttoTotal / 100)|number_format(2, ',', ' ') }} {{ currency }}</td>
+    </tr>
+</table>
+
+<div class="payment-info">
+    <h3>{{ 'document.invoice.payment_info'|trans({}, 'ui') }}</h3>
+    <p>{{ 'document.invoice.payment_method'|trans({}, 'ui') }}</p>
+    <p>{{ 'document.invoice.payment_due'|trans({}, 'ui') }} {{ date|date_modify('+14 days')|date('d.m.Y') }}</p>
+    <p>{{ 'document.invoice.bank_account'|trans({}, 'ui') }}</p>
+</div>
+
+<div class="footer">
+    <table>
+        <tr>
+            <td>
+                <div class="signature-line">{{ 'document.invoice.signature_issuer'|trans({}, 'ui') }}</div>
+            </td>
+            <td>
+                <div class="signature-line">{{ 'document.invoice.signature_receiver'|trans({}, 'ui') }}</div>
+            </td>
+        </tr>
+    </table>
+</div>
+
+</body>
+</html>

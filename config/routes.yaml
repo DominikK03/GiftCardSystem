@@ -1,0 +1,19 @@
+controllers:
+    resource: ../src/Interface/Http/Controller/
+    type: attribute
+
+admin_controllers:
+    resource: ../src/Infrastructure/Admin/Controller/
+    type: attribute
+
+activation_controllers:
+    resource: ../src/Infrastructure/Activation/Controller/
+    type: attribute
+
+my_cards_controllers:
+    resource: ../src/Infrastructure/MyCards/Controller/
+    type: attribute
+
+public_controllers:
+    resource: ../src/Infrastructure/Public/Controller/
+    type: attribute

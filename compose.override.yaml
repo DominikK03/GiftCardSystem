@@ -1,0 +1,67 @@
+---
+# Development environment override
+services:
+  php:
+    build:
+      context: .
+      target: frankenphp_dev
+    volumes:
+      - ./:/app
+      - ./frankenphp/Caddyfile:/etc/frankenphp/Caddyfile:ro
+      - ./frankenphp/conf.d/20-app.dev.ini:/usr/local/etc/php/app.conf.d/20-app.dev.ini:ro
+      # If you develop on Mac or Windows you can remove the vendor/ directory
+      #  from the bind-mount for better performance by enabling the next line:
+      #- /app/vendor
+    environment:
+      FRANKENPHP_WORKER_CONFIG: watch
+      MERCURE_EXTRA_DIRECTIVES: demo
+      # See https://xdebug.org/docs/all_settings#mode
+      XDEBUG_MODE: "${XDEBUG_MODE:-off}"
+      APP_ENV: "${APP_ENV:-dev}"
+    extra_hosts:
+      # Ensure that host.docker.internal is correctly defined on Linux
+      - host.docker.internal:host-gateway
+    tty: true
+###> symfony/mercure-bundle ###
+###< symfony/mercure-bundle ###
+
+
+  worker:
+    build:
+      context: .
+      target: frankenphp_worker
+    volumes:
+      - ./:/app
+    environment:
+      APP_ENV: "${APP_ENV:-dev}"
+      DATABASE_URL: postgresql://${POSTGRES_USER:-app}:${POSTGRES_PASSWORD:-!ChangeMe!}@database:5432/${POSTGRES_DB:-app}?serverVersion=${POSTGRES_VERSION:-16}&charset=${POSTGRES_CHARSET:-utf8}
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/%2f
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      - php
+      - rabbitmq
+      - database
+    restart: unless-stopped
+
+  mailhog:
+    image: mailhog/mailhog:latest
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+
+###> doctrine/doctrine-bundle ###
+  database:
+    ports:
+      - "5432"
+###< doctrine/doctrine-bundle ###
+
+###> symfony/mailer ###
+  mailer:
+    image: axllent/mailpit
+    ports:
+      - "1025"
+      - "8025"
+    environment:
+      MP_SMTP_AUTH_ACCEPT_ANY: 1
+      MP_SMTP_AUTH_ALLOW_INSECURE: 1
+###< symfony/mailer ###

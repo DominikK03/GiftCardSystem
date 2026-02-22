@@ -1,0 +1,220 @@
+@startuml c4-level4-code
+title C4 Level 4 - Code: GiftCard Bounded Context
+
+skinparam classAttributeIconSize 0
+skinparam class {
+    BackgroundColor<<Domain>> #DDFFDD
+    BackgroundColor<<Application>> #DDDDFF
+    BackgroundColor<<Infrastructure>> #FFDDDD
+    BackgroundColor<<External>> #FFFFDD
+}
+
+package "Domain Layer" <<Domain>> {
+
+    abstract class EventSourcedAggregateRoot <<External>> {
+        + {abstract} getAggregateRootId(): string
+        # apply(event: object): void
+        + getUncommittedEvents(): DomainEventStream
+    }
+
+    class GiftCard <<Domain>> {
+        - id: GiftCardId
+        - tenantId: string
+        - balance: Money
+        - initialAmount: Money
+        - status: GiftCardStatus
+        - createdAt: DateTimeImmutable
+        - expiresAt: ?DateTimeImmutable
+        - activatedAt: ?DateTimeImmutable
+        - suspendedAt: ?DateTimeImmutable
+        - cancelledAt: ?DateTimeImmutable
+        - expiredAt: ?DateTimeImmutable
+        - depletedAt: ?DateTimeImmutable
+        - suspensionDurationSeconds: ?int
+        + getAggregateRootId(): string
+        + getTenantId(): string
+        + {static} create(id, tenantId, amount, createdAt, expiresAt): GiftCard
+        + redeem(amount, redeemedAt): void
+        + activate(activatedAt): void
+        + suspend(reason, duration, suspendedAt): void
+        + reactivate(reason, reactivatedAt): void
+        + cancel(reason, cancelledAt): void
+        + expire(expiredAt): void
+        + adjustBalance(amount, reason, adjustedAt): void
+        + decreaseBalance(amount, reason, decreasedAt): void
+        # applyGiftCardCreated(event): void
+        # applyGiftCardRedeemed(event): void
+        # applyGiftCardDepleted(event): void
+        # applyGiftCardActivated(event): void
+        # applyGiftCardSuspended(event): void
+        # applyGiftCardReactivated(event): void
+        # applyGiftCardCancelled(event): void
+        # applyGiftCardExpired(event): void
+        # applyGiftCardBalanceAdjusted(event): void
+        # applyGiftCardBalanceDecreased(event): void
+    }
+
+    class GiftCardId <<Domain>> {
+        - value: string
+        + {static} generate(): GiftCardId
+        + {static} fromString(value): GiftCardId
+        + equals(other): bool
+        + toString(): string
+        + __toString(): string
+    }
+
+    class Money <<Domain>> {
+        - amount: int
+        - currency: string
+        + {static} fromPrimitives(amount, currency): Money
+        + getAmount(): int
+        + getCurrency(): string
+        + add(other): Money
+        + subtract(other): Money
+        + isGreaterThan(other): bool
+        + isGreaterThanOrEqual(other): bool
+        + equals(other): bool
+    }
+
+    enum GiftCardStatus <<Domain>> {
+        INACTIVE
+        ACTIVE
+        EXPIRED
+        DEPLETED
+        CANCELLED
+        SUSPENDED
+        + isActive(): bool
+        + equals(other): bool
+    }
+
+    class GiftCardCreated <<Domain>> {
+        + id: string
+        + tenantId: string
+        + amount: string
+        + currency: string
+        + createdAt: string
+        + expiresAt: string
+    }
+
+    class GiftCardRedeemed <<Domain>> {
+        + id: string
+        + amount: string
+        + currency: string
+        + redeemedAt: string
+    }
+
+    interface GiftCardRepository <<Domain>> {
+        + load(id: GiftCardId): ?GiftCard
+        + save(giftCard: GiftCard): void
+    }
+}
+
+package "Application Layer" <<Application>> {
+
+    interface GiftCardPersisterInterface <<Application>> {
+        + handle(giftCard: GiftCard): void
+    }
+
+    interface GiftCardProviderInterface <<Application>> {
+        + loadFromId(id: GiftCardId): GiftCard
+        + loadFromIdAsSystem(id: GiftCardId): GiftCard
+    }
+
+    class CreateCommand <<Application>> {
+        + amount: int
+        + currency: string
+        + expiresAt: ?string
+        + tenantId: ?string
+    }
+
+    class Create <<Application>> {
+        - persister: GiftCardPersisterInterface
+        - tenantContext: TenantContext
+        + __invoke(command: CreateCommand): string
+    }
+}
+
+package "Infrastructure Layer" <<Infrastructure>> {
+
+    interface EventStore <<External>> {
+        + load(id): DomainEventStream
+        + loadFromPlayhead(id, playhead): DomainEventStream
+        + append(id, eventStream): void
+    }
+
+    class GiftCardRepositoryBroadway <<Infrastructure>> {
+        - inner: BroadwayRepository
+        + load(id: GiftCardId): ?GiftCard
+        + save(giftCard: GiftCard): void
+    }
+
+    class TenantAwareEventStore <<Infrastructure>> {
+        - innerEventStore: EventStore
+        - tenantContext: TenantContext
+        + load(id): DomainEventStream
+        + loadFromPlayhead(id, playhead): DomainEventStream
+        + append(id, eventStream): void
+        - enrichWithTenantId(stream, tenantId): DomainEventStream
+        - verifyTenantOwnership(stream, tenantId, aggregateId): void
+    }
+
+    class GiftCardReadModelProjection <<Infrastructure>> {
+        - queryRepository: GiftCardReadModelRepositoryInterface
+        - repository: GiftCardReadModelWriterInterface
+        + onGiftCardCreated(event): void
+        + onGiftCardActivated(event): void
+        + onGiftCardRedeemed(event): void
+        + onGiftCardDepleted(event): void
+        + onGiftCardSuspended(event): void
+        + onGiftCardReactivated(event): void
+        + onGiftCardCancelled(event): void
+        + onGiftCardExpired(event): void
+        + onGiftCardBalanceAdjusted(event): void
+        + onGiftCardBalanceDecreased(event): void
+    }
+
+    class DomainEventToMessengerListener <<Infrastructure>> {
+        - messageBus: MessageBusInterface
+        + handle(message: DomainMessage): void
+    }
+}
+
+' === RELATIONSHIPS ===
+
+GiftCard --|> EventSourcedAggregateRoot : extends
+GiftCard --> GiftCardId : uses
+GiftCard --> Money : uses
+GiftCard --> GiftCardStatus : uses
+GiftCard ..> GiftCardCreated : emits
+GiftCard ..> GiftCardRedeemed : emits
+
+GiftCardRepositoryBroadway ..|> GiftCardRepository : implements
+TenantAwareEventStore ..|> EventStore : implements
+TenantAwareEventStore --> EventStore : wraps (decorator)
+GiftCardRepositoryBroadway --> TenantAwareEventStore : delegates to
+
+Create --> GiftCardPersisterInterface : uses
+Create --> CreateCommand : handles
+Create ..> GiftCard : creates
+
+GiftCardReadModelProjection --> GiftCardCreated : handles
+GiftCardReadModelProjection --> GiftCardRedeemed : handles
+DomainEventToMessengerListener ..> GiftCardReadModelProjection : dispatches via Messenger
+
+note right of GiftCardCreated
+  Representative event.
+  8 more events follow same pattern:
+  Activated, Depleted, Suspended,
+  Reactivated, Cancelled, Expired,
+  BalanceAdjusted, BalanceDecreased
+end note
+
+note right of Create
+  Representative handler.
+  8 more handlers follow same pattern:
+  Redeem, Activate, Suspend,
+  Reactivate, Cancel, Expire,
+  AdjustBalance, DecreaseBalance
+end note
+
+@enduml

@@ -1,0 +1,70 @@
+doctrine:
+    dbal:
+        # Use DATABASE_URL from environment (set in compose.yaml)
+        url: '%env(resolve:DATABASE_URL)%'
+        server_version: '16'
+        types:
+            tenant_id: App\Infrastructure\Tenant\Doctrine\Type\TenantIdType
+            tenant_name: App\Infrastructure\Tenant\Doctrine\Type\TenantNameType
+            tenant_email: App\Infrastructure\Tenant\Doctrine\Type\TenantEmailType
+            phone_number: App\Infrastructure\Tenant\Doctrine\Type\PhoneNumberType
+            nip: App\Infrastructure\Tenant\Doctrine\Type\NIPType
+            api_key: App\Infrastructure\Tenant\Doctrine\Type\ApiKeyType
+            api_secret: App\Infrastructure\Tenant\Doctrine\Type\ApiSecretType
+
+    orm:
+        auto_generate_proxy_classes: true
+        enable_lazy_ghost_objects: true
+        report_fields_where_declared: true
+        validate_xml_mapping: true
+        naming_strategy: doctrine.orm.naming_strategy.underscore_number_aware
+        auto_mapping: true
+        mappings:
+            GiftCardReadModel:
+                type: attribute
+                is_bundle: false
+                dir: '%kernel.project_dir%/src/Application/GiftCard/ReadModel'
+                prefix: 'App\Application\GiftCard\ReadModel'
+                alias: GiftCardReadModel
+            Tenant:
+                type: attribute
+                is_bundle: false
+                dir: '%kernel.project_dir%/src/Domain/Tenant/Entity'
+                prefix: 'App\Domain\Tenant\Entity'
+                alias: Tenant
+            User:
+                type: attribute
+                is_bundle: false
+                dir: '%kernel.project_dir%/src/Domain/User/Entity'
+                prefix: 'App\Domain\User\Entity'
+                alias: User
+            TenantValueObjects:
+                type: attribute
+                is_bundle: false
+                dir: '%kernel.project_dir%/src/Domain/Tenant/ValueObject'
+                prefix: 'App\Domain\Tenant\ValueObject'
+                alias: TenantValueObjects
+            GiftCardEventHandler:
+                type: attribute
+                is_bundle: false
+                dir: '%kernel.project_dir%/src/Application/GiftCard/EventHandler'
+                prefix: 'App\Application\GiftCard\EventHandler'
+                alias: GiftCardEventHandler
+            Activation:
+                type: attribute
+                is_bundle: false
+                dir: '%kernel.project_dir%/src/Infrastructure/Activation/Entity'
+                prefix: 'App\Infrastructure\Activation\Entity'
+                alias: Activation
+            MyCards:
+                type: attribute
+                is_bundle: false
+                dir: '%kernel.project_dir%/src/Infrastructure/MyCards/Entity'
+                prefix: 'App\Infrastructure\MyCards\Entity'
+                alias: MyCards
+            UserValueObjects:
+                type: attribute
+                is_bundle: false
+                dir: '%kernel.project_dir%/src/Domain/User/ValueObject'
+                prefix: 'App\Domain\User\ValueObject'
+                alias: UserValueObjects

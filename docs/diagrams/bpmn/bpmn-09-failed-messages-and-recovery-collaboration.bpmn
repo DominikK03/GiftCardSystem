@@ -1,0 +1,265 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" id="Defs_BPMN_09" targetNamespace="https://giftcard.local/bpmn" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI">
+  <bpmn:collaboration id="Collab_09">
+    <bpmn:participant id="P09_Ops" name="Operations Engineer" processRef="Process_09_Ops"/>
+    <bpmn:participant id="P09_Worker" name="Messenger Worker" processRef="Process_09_Worker"/>
+    <bpmn:participant id="P09_FailedTransport" name="Failed Transport" processRef="Process_09_FailedTransport"/>
+    <bpmn:participant id="P09_ReadModel" name="Read Model Rebuild Service" processRef="Process_09_ReadModel"/>
+    <bpmn:messageFlow id="M09_Alert" sourceRef="T09_DetectFailure" targetRef="T09_InspectFailedMessages" name="Failure alert"/>
+    <bpmn:messageFlow id="M09_RetryRequest" sourceRef="T09_TriggerRetry" targetRef="S09_RetryRequested" name="Retry failed messages"/>
+    <bpmn:messageFlow id="M09_ReplayToWorker" sourceRef="T09_RequeueMessage" targetRef="S09_ConsumeRetriedMessage" name="Requeued message"/>
+    <bpmn:messageFlow id="M09_RebuildRequest" sourceRef="T09_RunRebuild" targetRef="S09_RebuildRequested" name="Rebuild read model"/>
+    <bpmn:messageFlow id="M09_RebuildResult" sourceRef="T09_ReportRebuildDone" targetRef="T09_VerifyConsistency" name="Rebuild done"/>
+  </bpmn:collaboration>
+  <bpmn:process id="Process_09_Ops" isExecutable="false">
+    <bpmn:startEvent id="S09_OpsStart" name="Operational alert"/>
+    <bpmn:task id="T09_InspectFailedMessages" name="Inspect failed queue"/>
+    <bpmn:exclusiveGateway id="G09_RetryDecision" name="Retry now?"/>
+    <bpmn:task id="T09_TriggerRetry" name="Trigger failed:retry"/>
+    <bpmn:task id="T09_VerifyConsistency" name="Verify read model consistency"/>
+    <bpmn:exclusiveGateway id="G09_RebuildNeeded" name="Rebuild needed?"/>
+    <bpmn:task id="T09_RunRebuild" name="Run rebuild-read-model --truncate"/>
+    <bpmn:endEvent id="E09_OpsDone" name="Incident closed"/>
+    <bpmn:sequenceFlow id="F09_01" sourceRef="S09_OpsStart" targetRef="T09_InspectFailedMessages"/>
+    <bpmn:sequenceFlow id="F09_02" sourceRef="T09_InspectFailedMessages" targetRef="G09_RetryDecision"/>
+    <bpmn:sequenceFlow id="F09_03" sourceRef="G09_RetryDecision" targetRef="T09_TriggerRetry" name="Yes"/>
+    <bpmn:sequenceFlow id="F09_04" sourceRef="G09_RetryDecision" targetRef="T09_VerifyConsistency" name="No"/>
+    <bpmn:sequenceFlow id="F09_05" sourceRef="T09_TriggerRetry" targetRef="T09_VerifyConsistency"/>
+    <bpmn:sequenceFlow id="F09_06" sourceRef="T09_VerifyConsistency" targetRef="G09_RebuildNeeded"/>
+    <bpmn:sequenceFlow id="F09_07" sourceRef="G09_RebuildNeeded" targetRef="T09_RunRebuild" name="Yes"/>
+    <bpmn:sequenceFlow id="F09_08" sourceRef="G09_RebuildNeeded" targetRef="E09_OpsDone" name="No"/>
+    <bpmn:sequenceFlow id="F09_09" sourceRef="T09_RunRebuild" targetRef="E09_OpsDone"/>
+  </bpmn:process>
+  <bpmn:process id="Process_09_Worker" isExecutable="true">
+    <bpmn:startEvent id="S09_ConsumeRetriedMessage" name="Retried message consumed"/>
+    <bpmn:task id="T09_ExecuteHandler" name="Execute command/event handler"/>
+    <bpmn:exclusiveGateway id="G09_HandlerSuccess" name="Success?"/>
+    <bpmn:task id="T09_DetectFailure" name="Emit failure alert"/>
+    <bpmn:task id="T09_CommitOutcome" name="Persist success outcome"/>
+    <bpmn:endEvent id="E09_WorkerDone" name="Processing finished"/>
+    <bpmn:sequenceFlow id="F09_10" sourceRef="S09_ConsumeRetriedMessage" targetRef="T09_ExecuteHandler"/>
+    <bpmn:sequenceFlow id="F09_11" sourceRef="T09_ExecuteHandler" targetRef="G09_HandlerSuccess"/>
+    <bpmn:sequenceFlow id="F09_12" sourceRef="G09_HandlerSuccess" targetRef="T09_DetectFailure" name="No"/>
+    <bpmn:sequenceFlow id="F09_13" sourceRef="G09_HandlerSuccess" targetRef="T09_CommitOutcome" name="Yes"/>
+    <bpmn:sequenceFlow id="F09_14" sourceRef="T09_DetectFailure" targetRef="E09_WorkerDone"/>
+    <bpmn:sequenceFlow id="F09_15" sourceRef="T09_CommitOutcome" targetRef="E09_WorkerDone"/>
+  </bpmn:process>
+  <bpmn:process id="Process_09_FailedTransport" isExecutable="true">
+    <bpmn:startEvent id="S09_RetryRequested" name="Retry command received"/>
+    <bpmn:task id="T09_LoadFailedMessages" name="Load failed messages"/>
+    <bpmn:task id="T09_RequeueMessage" name="Requeue to async/async_events"/>
+    <bpmn:endEvent id="E09_FailedTransportDone" name="Messages requeued"/>
+    <bpmn:sequenceFlow id="F09_16" sourceRef="S09_RetryRequested" targetRef="T09_LoadFailedMessages"/>
+    <bpmn:sequenceFlow id="F09_17" sourceRef="T09_LoadFailedMessages" targetRef="T09_RequeueMessage"/>
+    <bpmn:sequenceFlow id="F09_18" sourceRef="T09_RequeueMessage" targetRef="E09_FailedTransportDone"/>
+  </bpmn:process>
+  <bpmn:process id="Process_09_ReadModel" isExecutable="true">
+    <bpmn:startEvent id="S09_RebuildRequested" name="Rebuild requested"/>
+    <bpmn:task id="T09_TruncateReadModel" name="Truncate gift_cards_read"/>
+    <bpmn:task id="T09_ReplayEvents" name="Replay events from event store"/>
+    <bpmn:task id="T09_ReportRebuildDone" name="Publish rebuild completion"/>
+    <bpmn:endEvent id="E09_ReadModelDone" name="Rebuild complete"/>
+    <bpmn:sequenceFlow id="F09_19" sourceRef="S09_RebuildRequested" targetRef="T09_TruncateReadModel"/>
+    <bpmn:sequenceFlow id="F09_20" sourceRef="T09_TruncateReadModel" targetRef="T09_ReplayEvents"/>
+    <bpmn:sequenceFlow id="F09_21" sourceRef="T09_ReplayEvents" targetRef="T09_ReportRebuildDone"/>
+    <bpmn:sequenceFlow id="F09_22" sourceRef="T09_ReportRebuildDone" targetRef="E09_ReadModelDone"/>
+  </bpmn:process>
+  <bpmndi:BPMNDiagram xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNDiagram_Collab_09">
+    <bpmndi:BPMNPlane id="BPMNPlane_Collab_09" bpmnElement="Collab_09">
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_P09_Ops" bpmnElement="P09_Ops" isHorizontal="true">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="80" y="80" width="2200" height="260"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_S09_OpsStart" bpmnElement="S09_OpsStart">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="220" y="170" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_T09_InspectFailedMessages" bpmnElement="T09_InspectFailedMessages">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="370" y="170" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_G09_RetryDecision" bpmnElement="G09_RetryDecision">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="520" y="170" width="50" height="50"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_T09_TriggerRetry" bpmnElement="T09_TriggerRetry">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="670" y="170" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_T09_VerifyConsistency" bpmnElement="T09_VerifyConsistency">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="820" y="170" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_G09_RebuildNeeded" bpmnElement="G09_RebuildNeeded">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="970" y="170" width="50" height="50"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_T09_RunRebuild" bpmnElement="T09_RunRebuild">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="1120" y="170" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_E09_OpsDone" bpmnElement="E09_OpsDone">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="1270" y="170" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_P09_Worker" bpmnElement="P09_Worker" isHorizontal="true">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="80" y="410" width="2200" height="260"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_S09_ConsumeRetriedMessage" bpmnElement="S09_ConsumeRetriedMessage">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="220" y="500" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_T09_ExecuteHandler" bpmnElement="T09_ExecuteHandler">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="370" y="500" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_G09_HandlerSuccess" bpmnElement="G09_HandlerSuccess">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="520" y="500" width="50" height="50"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_T09_DetectFailure" bpmnElement="T09_DetectFailure">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="670" y="500" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_T09_CommitOutcome" bpmnElement="T09_CommitOutcome">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="820" y="500" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_E09_WorkerDone" bpmnElement="E09_WorkerDone">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="970" y="500" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_P09_FailedTransport" bpmnElement="P09_FailedTransport" isHorizontal="true">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="80" y="740" width="2200" height="260"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_S09_RetryRequested" bpmnElement="S09_RetryRequested">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="220" y="830" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_T09_LoadFailedMessages" bpmnElement="T09_LoadFailedMessages">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="370" y="830" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_T09_RequeueMessage" bpmnElement="T09_RequeueMessage">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="520" y="830" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_E09_FailedTransportDone" bpmnElement="E09_FailedTransportDone">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="670" y="830" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_P09_ReadModel" bpmnElement="P09_ReadModel" isHorizontal="true">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="80" y="1070" width="2200" height="260"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_S09_RebuildRequested" bpmnElement="S09_RebuildRequested">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="220" y="1160" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_T09_TruncateReadModel" bpmnElement="T09_TruncateReadModel">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="370" y="1160" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_T09_ReplayEvents" bpmnElement="T09_ReplayEvents">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="520" y="1160" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_T09_ReportRebuildDone" bpmnElement="T09_ReportRebuildDone">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="670" y="1160" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_E09_ReadModelDone" bpmnElement="E09_ReadModelDone">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="820" y="1160" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_F09_01" bpmnElement="F09_01">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="238" y="188"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="430" y="210"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_F09_02" bpmnElement="F09_02">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="430" y="210"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="545" y="195"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_F09_03" bpmnElement="F09_03">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="545" y="195"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="730" y="210"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_F09_04" bpmnElement="F09_04">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="545" y="195"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="880" y="210"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_F09_05" bpmnElement="F09_05">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="730" y="210"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="880" y="210"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_F09_06" bpmnElement="F09_06">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="880" y="210"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="995" y="195"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_F09_07" bpmnElement="F09_07">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="995" y="195"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="1180" y="210"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_F09_08" bpmnElement="F09_08">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="995" y="195"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="1288" y="188"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_F09_09" bpmnElement="F09_09">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="1180" y="210"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="1288" y="188"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_F09_10" bpmnElement="F09_10">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="238" y="518"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="430" y="540"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_F09_11" bpmnElement="F09_11">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="430" y="540"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="545" y="525"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_F09_12" bpmnElement="F09_12">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="545" y="525"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="730" y="540"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_F09_13" bpmnElement="F09_13">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="545" y="525"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="880" y="540"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_F09_14" bpmnElement="F09_14">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="730" y="540"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="988" y="518"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_F09_15" bpmnElement="F09_15">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="880" y="540"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="988" y="518"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_F09_16" bpmnElement="F09_16">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="238" y="848"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="430" y="870"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_F09_17" bpmnElement="F09_17">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="430" y="870"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="580" y="870"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_F09_18" bpmnElement="F09_18">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="580" y="870"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="688" y="848"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_F09_19" bpmnElement="F09_19">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="238" y="1178"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="430" y="1200"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_F09_20" bpmnElement="F09_20">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="430" y="1200"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="580" y="1200"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_F09_21" bpmnElement="F09_21">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="580" y="1200"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="730" y="1200"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_F09_22" bpmnElement="F09_22">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="730" y="1200"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="838" y="1178"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_M09_Alert" bpmnElement="M09_Alert">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="730" y="540"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="580" y="357"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="430" y="210"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_M09_RetryRequest" bpmnElement="M09_RetryRequest">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="730" y="210"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="484" y="511"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="238" y="848"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_M09_ReplayToWorker" bpmnElement="M09_ReplayToWorker">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="580" y="870"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="409" y="676"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="238" y="518"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_M09_RebuildRequest" bpmnElement="M09_RebuildRequest">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="1180" y="210"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="709" y="676"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="238" y="1178"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_M09_RebuildResult" bpmnElement="M09_RebuildResult">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="730" y="1200"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="805" y="687"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="880" y="210"/>
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

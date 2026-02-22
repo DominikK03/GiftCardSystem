@@ -1,0 +1,317 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" id="Defs_BPMN_07" targetNamespace="https://giftcard.local/bpmn" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI">
+  <bpmn:collaboration id="Collab_07">
+    <bpmn:participant id="P07_BackofficeAdmin" name="Backoffice Admin" processRef="Process_07_BackofficeAdmin"/>
+    <bpmn:participant id="P07_Platform" name="GiftCard Platform (Wizard + Tenant Context)" processRef="Process_07_Platform"/>
+    <bpmn:participant id="P07_DocumentService" name="Document Generator/Storage" processRef="Process_07_DocumentService"/>
+    <bpmn:participant id="P07_TenantRepresentative" name="Tenant Representative" processRef="Process_07_TenantRepresentative"/>
+    <bpmn:messageFlow id="M07_SubmitWizard" sourceRef="T07_SubmitWizardData" targetRef="S07_DataReceived" name="Wizard submit"/>
+    <bpmn:messageFlow id="M07_RequestCorrection" sourceRef="T07_RequestCorrection" targetRef="T07_CorrectData" name="Validation issues"/>
+    <bpmn:messageFlow id="M07_RequestPdf" sourceRef="T07_RequestAgreementPdf" targetRef="S07_DocRequest" name="Generate agreement"/>
+    <bpmn:messageFlow id="M07_ReturnPdf" sourceRef="T07_ReturnPdfLocation" targetRef="T07_ReviewAgreement" name="Agreement preview"/>
+    <bpmn:messageFlow id="M07_SendToRepresentative" sourceRef="T07_SendAgreementForSigning" targetRef="S07_ReceiveAgreement" name="Agreement link/PDF"/>
+    <bpmn:messageFlow id="M07_SignedUpload" sourceRef="T07_UploadSignedAgreement" targetRef="T07_VerifySignedAgreement" name="Signed agreement upload"/>
+    <bpmn:messageFlow id="M07_NotifyReady" sourceRef="T07_NotifyTenantReady" targetRef="T07_ReceiveGoLiveConfirmation" name="Tenant activated"/>
+  </bpmn:collaboration>
+  <bpmn:process id="Process_07_BackofficeAdmin" isExecutable="false">
+    <bpmn:startEvent id="S07_AdminStart" name="Start tenant onboarding"/>
+    <bpmn:task id="T07_FillWizardSteps" name="Fill step1-step4 data"/>
+    <bpmn:task id="T07_SubmitWizardData" name="Submit wizard data"/>
+    <bpmn:task id="T07_CorrectData" name="Correct data if rejected"/>
+    <bpmn:task id="T07_ReviewAgreement" name="Review generated agreement"/>
+    <bpmn:task id="T07_ReceiveGoLiveConfirmation" name="Receive go-live confirmation"/>
+    <bpmn:endEvent id="E07_AdminDone" name="Onboarding done"/>
+    <bpmn:sequenceFlow id="F07_01" sourceRef="S07_AdminStart" targetRef="T07_FillWizardSteps"/>
+    <bpmn:sequenceFlow id="F07_02" sourceRef="T07_FillWizardSteps" targetRef="T07_SubmitWizardData"/>
+    <bpmn:sequenceFlow id="F07_03" sourceRef="T07_SubmitWizardData" targetRef="T07_ReviewAgreement"/>
+    <bpmn:sequenceFlow id="F07_04" sourceRef="T07_CorrectData" targetRef="T07_SubmitWizardData"/>
+    <bpmn:sequenceFlow id="F07_05" sourceRef="T07_ReviewAgreement" targetRef="T07_ReceiveGoLiveConfirmation"/>
+    <bpmn:sequenceFlow id="F07_06" sourceRef="T07_ReceiveGoLiveConfirmation" targetRef="E07_AdminDone"/>
+  </bpmn:process>
+  <bpmn:process id="Process_07_Platform" isExecutable="true">
+    <bpmn:startEvent id="S07_DataReceived" name="Wizard data received"/>
+    <bpmn:task id="T07_ValidateTenantData" name="Validate tenant value objects"/>
+    <bpmn:exclusiveGateway id="G07_DataValid" name="Data valid?"/>
+    <bpmn:task id="T07_RequestCorrection" name="Send correction request"/>
+    <bpmn:task id="T07_CreateTenant" name="Create tenant and API credentials"/>
+    <bpmn:task id="T07_RequestAgreementPdf" name="Request agreement PDF"/>
+    <bpmn:task id="T07_SendAgreementForSigning" name="Send agreement to representative"/>
+    <bpmn:task id="T07_VerifySignedAgreement" name="Verify mime/size and persist signed file"/>
+    <bpmn:exclusiveGateway id="G07_SignedValid" name="Signed agreement valid?"/>
+    <bpmn:task id="T07_ActivateTenant" name="Activate tenant in operational mode"/>
+    <bpmn:task id="T07_NotifyTenantReady" name="Notify admin that tenant is ready"/>
+    <bpmn:endEvent id="E07_PlatformDone" name="Platform onboarding finished"/>
+    <bpmn:sequenceFlow id="F07_07" sourceRef="S07_DataReceived" targetRef="T07_ValidateTenantData"/>
+    <bpmn:sequenceFlow id="F07_08" sourceRef="T07_ValidateTenantData" targetRef="G07_DataValid"/>
+    <bpmn:sequenceFlow id="F07_09" sourceRef="G07_DataValid" targetRef="T07_RequestCorrection" name="No"/>
+    <bpmn:sequenceFlow id="F07_10" sourceRef="T07_RequestCorrection" targetRef="E07_PlatformDone"/>
+    <bpmn:sequenceFlow id="F07_11" sourceRef="G07_DataValid" targetRef="T07_CreateTenant" name="Yes"/>
+    <bpmn:sequenceFlow id="F07_12" sourceRef="T07_CreateTenant" targetRef="T07_RequestAgreementPdf"/>
+    <bpmn:sequenceFlow id="F07_13" sourceRef="T07_RequestAgreementPdf" targetRef="T07_SendAgreementForSigning"/>
+    <bpmn:sequenceFlow id="F07_14" sourceRef="T07_SendAgreementForSigning" targetRef="T07_VerifySignedAgreement"/>
+    <bpmn:sequenceFlow id="F07_15" sourceRef="T07_VerifySignedAgreement" targetRef="G07_SignedValid"/>
+    <bpmn:sequenceFlow id="F07_16" sourceRef="G07_SignedValid" targetRef="T07_RequestCorrection" name="No"/>
+    <bpmn:sequenceFlow id="F07_17" sourceRef="G07_SignedValid" targetRef="T07_ActivateTenant" name="Yes"/>
+    <bpmn:sequenceFlow id="F07_18" sourceRef="T07_ActivateTenant" targetRef="T07_NotifyTenantReady"/>
+    <bpmn:sequenceFlow id="F07_19" sourceRef="T07_NotifyTenantReady" targetRef="E07_PlatformDone"/>
+  </bpmn:process>
+  <bpmn:process id="Process_07_DocumentService" isExecutable="true">
+    <bpmn:startEvent id="S07_DocRequest" name="PDF generation requested"/>
+    <bpmn:task id="T07_RenderPdf" name="Render agreement PDF"/>
+    <bpmn:task id="T07_StorePdf" name="Store PDF in filesystem"/>
+    <bpmn:task id="T07_ReturnPdfLocation" name="Return file location"/>
+    <bpmn:endEvent id="E07_DocDone" name="PDF ready"/>
+    <bpmn:sequenceFlow id="F07_20" sourceRef="S07_DocRequest" targetRef="T07_RenderPdf"/>
+    <bpmn:sequenceFlow id="F07_21" sourceRef="T07_RenderPdf" targetRef="T07_StorePdf"/>
+    <bpmn:sequenceFlow id="F07_22" sourceRef="T07_StorePdf" targetRef="T07_ReturnPdfLocation"/>
+    <bpmn:sequenceFlow id="F07_23" sourceRef="T07_ReturnPdfLocation" targetRef="E07_DocDone"/>
+  </bpmn:process>
+  <bpmn:process id="Process_07_TenantRepresentative" isExecutable="false">
+    <bpmn:startEvent id="S07_ReceiveAgreement" name="Agreement received"/>
+    <bpmn:task id="T07_ReviewAndSign" name="Review and sign agreement"/>
+    <bpmn:task id="T07_UploadSignedAgreement" name="Upload signed PDF"/>
+    <bpmn:endEvent id="E07_RepresentativeDone" name="Submitted"/>
+    <bpmn:sequenceFlow id="F07_24" sourceRef="S07_ReceiveAgreement" targetRef="T07_ReviewAndSign"/>
+    <bpmn:sequenceFlow id="F07_25" sourceRef="T07_ReviewAndSign" targetRef="T07_UploadSignedAgreement"/>
+    <bpmn:sequenceFlow id="F07_26" sourceRef="T07_UploadSignedAgreement" targetRef="E07_RepresentativeDone"/>
+  </bpmn:process>
+  <bpmndi:BPMNDiagram xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNDiagram_Collab_07">
+    <bpmndi:BPMNPlane id="BPMNPlane_Collab_07" bpmnElement="Collab_07">
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_P07_BackofficeAdmin" bpmnElement="P07_BackofficeAdmin" isHorizontal="true">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="80" y="80" width="2200" height="260"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_S07_AdminStart" bpmnElement="S07_AdminStart">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="220" y="170" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_T07_FillWizardSteps" bpmnElement="T07_FillWizardSteps">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="370" y="170" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_T07_SubmitWizardData" bpmnElement="T07_SubmitWizardData">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="520" y="170" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_T07_CorrectData" bpmnElement="T07_CorrectData">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="670" y="170" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_T07_ReviewAgreement" bpmnElement="T07_ReviewAgreement">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="820" y="170" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_T07_ReceiveGoLiveConfirmation" bpmnElement="T07_ReceiveGoLiveConfirmation">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="970" y="170" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_E07_AdminDone" bpmnElement="E07_AdminDone">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="1120" y="170" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_P07_Platform" bpmnElement="P07_Platform" isHorizontal="true">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="80" y="410" width="2200" height="260"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_S07_DataReceived" bpmnElement="S07_DataReceived">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="220" y="500" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_T07_ValidateTenantData" bpmnElement="T07_ValidateTenantData">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="370" y="500" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_G07_DataValid" bpmnElement="G07_DataValid">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="520" y="500" width="50" height="50"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_T07_RequestCorrection" bpmnElement="T07_RequestCorrection">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="670" y="500" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_T07_CreateTenant" bpmnElement="T07_CreateTenant">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="820" y="500" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_T07_RequestAgreementPdf" bpmnElement="T07_RequestAgreementPdf">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="970" y="500" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_T07_SendAgreementForSigning" bpmnElement="T07_SendAgreementForSigning">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="1120" y="500" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_T07_VerifySignedAgreement" bpmnElement="T07_VerifySignedAgreement">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="1270" y="500" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_G07_SignedValid" bpmnElement="G07_SignedValid">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="1420" y="500" width="50" height="50"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_T07_ActivateTenant" bpmnElement="T07_ActivateTenant">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="1570" y="500" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_T07_NotifyTenantReady" bpmnElement="T07_NotifyTenantReady">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="1720" y="500" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_E07_PlatformDone" bpmnElement="E07_PlatformDone">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="1870" y="500" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_P07_DocumentService" bpmnElement="P07_DocumentService" isHorizontal="true">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="80" y="740" width="2200" height="260"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_S07_DocRequest" bpmnElement="S07_DocRequest">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="220" y="830" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_T07_RenderPdf" bpmnElement="T07_RenderPdf">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="370" y="830" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_T07_StorePdf" bpmnElement="T07_StorePdf">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="520" y="830" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_T07_ReturnPdfLocation" bpmnElement="T07_ReturnPdfLocation">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="670" y="830" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_E07_DocDone" bpmnElement="E07_DocDone">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="820" y="830" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_P07_TenantRepresentative" bpmnElement="P07_TenantRepresentative" isHorizontal="true">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="80" y="1070" width="2200" height="260"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_S07_ReceiveAgreement" bpmnElement="S07_ReceiveAgreement">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="220" y="1160" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_T07_ReviewAndSign" bpmnElement="T07_ReviewAndSign">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="370" y="1160" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_T07_UploadSignedAgreement" bpmnElement="T07_UploadSignedAgreement">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="520" y="1160" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_E07_RepresentativeDone" bpmnElement="E07_RepresentativeDone">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="670" y="1160" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_F07_01" bpmnElement="F07_01">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="238" y="188"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="430" y="210"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_F07_02" bpmnElement="F07_02">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="430" y="210"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="580" y="210"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_F07_03" bpmnElement="F07_03">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="580" y="210"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="880" y="210"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_F07_04" bpmnElement="F07_04">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="730" y="210"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="580" y="210"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_F07_05" bpmnElement="F07_05">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="880" y="210"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="1030" y="210"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_F07_06" bpmnElement="F07_06">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="1030" y="210"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="1138" y="188"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_F07_07" bpmnElement="F07_07">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="238" y="518"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="430" y="540"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_F07_08" bpmnElement="F07_08">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="430" y="540"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="545" y="525"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_F07_09" bpmnElement="F07_09">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="545" y="525"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="730" y="540"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_F07_10" bpmnElement="F07_10">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="730" y="540"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="1888" y="518"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_F07_11" bpmnElement="F07_11">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="545" y="525"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="880" y="540"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_F07_12" bpmnElement="F07_12">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="880" y="540"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="1030" y="540"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_F07_13" bpmnElement="F07_13">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="1030" y="540"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="1180" y="540"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_F07_14" bpmnElement="F07_14">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="1180" y="540"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="1330" y="540"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_F07_15" bpmnElement="F07_15">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="1330" y="540"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="1445" y="525"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_F07_16" bpmnElement="F07_16">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="1445" y="525"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="730" y="540"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_F07_17" bpmnElement="F07_17">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="1445" y="525"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="1630" y="540"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_F07_18" bpmnElement="F07_18">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="1630" y="540"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="1780" y="540"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_F07_19" bpmnElement="F07_19">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="1780" y="540"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="1888" y="518"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_F07_20" bpmnElement="F07_20">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="238" y="848"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="430" y="870"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_F07_21" bpmnElement="F07_21">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="430" y="870"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="580" y="870"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_F07_22" bpmnElement="F07_22">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="580" y="870"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="730" y="870"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_F07_23" bpmnElement="F07_23">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="730" y="870"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="838" y="848"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_F07_24" bpmnElement="F07_24">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="238" y="1178"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="430" y="1200"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_F07_25" bpmnElement="F07_25">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="430" y="1200"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="580" y="1200"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_F07_26" bpmnElement="F07_26">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="580" y="1200"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="688" y="1178"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_M07_SubmitWizard" bpmnElement="M07_SubmitWizard">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="580" y="210"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="409" y="346"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="238" y="518"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_M07_RequestCorrection" bpmnElement="M07_RequestCorrection">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="730" y="540"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="730" y="357"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="730" y="210"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_M07_RequestPdf" bpmnElement="M07_RequestPdf">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="1030" y="540"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="634" y="676"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="238" y="848"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_M07_ReturnPdf" bpmnElement="M07_ReturnPdf">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="730" y="870"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="805" y="522"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="880" y="210"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_M07_SendToRepresentative" bpmnElement="M07_SendToRepresentative">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="1180" y="540"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="709" y="841"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="238" y="1178"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_M07_SignedUpload" bpmnElement="M07_SignedUpload">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="580" y="1200"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="955" y="852"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="1330" y="540"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_M07_NotifyReady" bpmnElement="M07_NotifyReady">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="1780" y="540"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="1405" y="357"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="1030" y="210"/>
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

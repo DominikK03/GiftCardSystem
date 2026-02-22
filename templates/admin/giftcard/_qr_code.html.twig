@@ -1,0 +1,15 @@
+{# QR Code card #}
+<div class="card mb-3">
+    <div class="card-header"><i class="bi bi-qr-code me-2"></i>{{ 'giftcard.qr_code'|trans({}, 'ui') }}</div>
+    <div class="card-body text-center">
+        <div class="qr-code-wrapper">
+            <img src="{{ path('admin_giftcard_qr', {id: gc.id}) }}"
+                 alt="QR Code"
+                 class="qr-code-image"
+                 loading="lazy">
+        </div>
+        <div class="mt-2">
+            <code class="id-cell" style="font-size:.7rem;">{{ gc.id }}</code>
+        </div>
+    </div>
+</div>

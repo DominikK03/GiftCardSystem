@@ -1,0 +1,191 @@
+@startuml ERD – System Kart Podarunkowych
+
+!define TABLE(name,desc) entity name as "desc" << (T,#FFAAAA) >>
+!define PK(x) <b><color:darkblue>PK</color></b> x
+!define FK(x) <color:green>FK</color> x
+!define UK(x) <u>x</u>
+
+skinparam linetype ortho
+skinparam roundcorner 10
+skinparam shadowing false
+skinparam defaultFontName "DejaVu Sans"
+skinparam defaultFontSize 11
+
+skinparam entity {
+    BackgroundColor      #FAFAFA
+    BorderColor          #555555
+    ArrowColor           #333333
+    FontColor            #111111
+    HeaderBackgroundColor #4A90D9
+    HeaderFontColor      white
+    HeaderFontStyle      bold
+}
+
+' ═══════════════════════════════════════════════
+' TENANTS
+' ═══════════════════════════════════════════════
+entity "**tenants**" as tenants {
+    PK id : VARCHAR(36)
+    --
+    UK name : VARCHAR(255)
+    UK email : VARCHAR(255)
+    nip : VARCHAR(20)
+    address_street : VARCHAR(255)
+    address_city : VARCHAR(100)
+    address_postal_code : VARCHAR(20)
+    address_country : VARCHAR(100)
+    phone_number : VARCHAR(30)
+    representative_first_name : VARCHAR(100)
+    representative_last_name : VARCHAR(100)
+    UK api_key : VARCHAR(64)
+    api_secret : VARCHAR(255)
+    status : VARCHAR(20) <<ACTIVE|SUSPENDED|CANCELLED>>
+    created_at : DATETIME
+    suspended_at : DATETIME <<nullable>>
+    cancelled_at : DATETIME <<nullable>>
+    allowed_redirect_domain : VARCHAR(255) <<nullable>>
+}
+
+' ═══════════════════════════════════════════════
+' USERS
+' ═══════════════════════════════════════════════
+entity "**users**" as users {
+    PK id : VARCHAR(36)
+    --
+    UK email : VARCHAR(255)
+    password_hash : VARCHAR(255)
+    role : VARCHAR(20) <<OWNER|ADMIN|STAFF>>
+    is_active : BOOLEAN
+    created_at : DATETIME
+    deactivated_at : DATETIME <<nullable>>
+}
+
+' ═══════════════════════════════════════════════
+' GIFT CARDS – READ MODEL (projekcja CQRS)
+' ═══════════════════════════════════════════════
+entity "**gift_cards_read**\n//[CQRS Read Model]//" as gift_cards_read {
+    PK id : UUID
+    --
+    FK tenant_id : VARCHAR(36)
+    balance_amount : INT <<grosze>>
+    balance_currency : VARCHAR(3)
+    initial_amount : INT
+    initial_currency : VARCHAR(3)
+    status : VARCHAR(20) <<INACTIVE|ACTIVE|...|SUSPENDED>>
+    expires_at : TIMESTAMPTZ <<nullable>>
+    created_at : TIMESTAMPTZ
+    activated_at : TIMESTAMPTZ <<nullable>>
+    suspended_at : TIMESTAMPTZ <<nullable>>
+    cancelled_at : TIMESTAMPTZ <<nullable>>
+    expired_at : TIMESTAMPTZ <<nullable>>
+    depleted_at : TIMESTAMPTZ <<nullable>>
+    suspension_duration : INT <<sekundy>>
+    UK card_number : VARCHAR(12) <<nullable>>
+    pin : VARCHAR(8) <<nullable>>
+    updated_at : TIMESTAMPTZ
+}
+
+' ═══════════════════════════════════════════════
+' EVENT STORE (Broadway – Event Sourcing)
+' ═══════════════════════════════════════════════
+entity "**events**\n//[Event Store]//" as events {
+    PK id : SERIAL
+    --
+    uuid : UUID <<aggregate UUID>>
+    playhead : INT <<nr sekwencyjny>>
+    type : VARCHAR(255) <<klasa eventu>>
+    payload : JSON <<dane eventu>>
+    metadata : JSON <<tenant_id, …>>
+    recorded_on : TIMESTAMP
+}
+
+' ═══════════════════════════════════════════════
+' ACTIVATION REQUESTS
+' ═══════════════════════════════════════════════
+entity "**activation_requests**" as activation_requests {
+    PK id : VARCHAR(36)
+    --
+    card_number : VARCHAR(12)
+    customer_email : VARCHAR(255)
+    verification_code : VARCHAR(6)
+    verified : BOOLEAN
+    FK gift_card_id : VARCHAR(36)
+    FK tenant_id : VARCHAR(36)
+    return_url : VARCHAR(2048)
+    callback_url : VARCHAR(2048) <<nullable>>
+    status : VARCHAR(30) <<pending_verification|verified|completed|expired>>
+    created_at : DATETIME
+    expires_at : DATETIME
+}
+
+' ═══════════════════════════════════════════════
+' CARD ASSIGNMENTS
+' ═══════════════════════════════════════════════
+entity "**card_assignments**" as card_assignments {
+    PK id : VARCHAR(36)
+    --
+    UK,FK gift_card_id : VARCHAR(36)
+    FK tenant_id : VARCHAR(36)
+    customer_email : VARCHAR(255)
+    assigned_at : DATETIME
+}
+
+' ═══════════════════════════════════════════════
+' TENANT DOCUMENTS
+' ═══════════════════════════════════════════════
+entity "**tenant_documents**" as tenant_documents {
+    PK id : VARCHAR(36)
+    --
+    FK tenant_id : VARCHAR(36)
+    type : VARCHAR(50) <<COOPERATION_AGREEMENT|INVOICE|…>>
+    filename : VARCHAR(255)
+    original_name : VARCHAR(255)
+    mime_type : VARCHAR(50)
+    size : INT <<bajty>>
+    storage_path : VARCHAR(500)
+    metadata : JSON <<nullable>>
+    created_at : DATETIME
+}
+
+' ═══════════════════════════════════════════════
+' TENANT WEBHOOKS
+' ═══════════════════════════════════════════════
+entity "**tenant_webhooks**" as tenant_webhooks {
+    PK id : INT <<auto increment>>
+    --
+    FK tenant_id : VARCHAR(36)
+    url : VARCHAR(500)
+    events : JSON <<subskrybowane typy>>
+    is_active : BOOLEAN
+    secret : VARCHAR(64)
+    created_at : DATETIME
+}
+
+' ═══════════════════════════════════════════════
+' MESSENGER MESSAGES (dead-letter queue)
+' ═══════════════════════════════════════════════
+entity "**messenger_messages**\n//[Dead-letter Queue]//" as messenger_messages {
+    PK id : BIGSERIAL
+    --
+    body : TEXT
+    headers : TEXT
+    queue_name : VARCHAR(190)
+    created_at : TIMESTAMP
+    available_at : TIMESTAMP
+    delivered_at : TIMESTAMP <<nullable>>
+}
+
+' ═══════════════════════════════════════════════
+' RELACJE
+' ═══════════════════════════════════════════════
+
+tenants           ||--o{ gift_cards_read      : "posiada karty >"
+tenants           ||--o{ activation_requests  : "inicjuje aktywacje >"
+tenants           ||--o{ card_assignments     : "zarządza przypisaniami >"
+tenants           ||--o{ tenant_documents     : "posiada dokumenty >"
+tenants           ||--o{ tenant_webhooks      : "konfiguruje webhooki >"
+
+gift_cards_read   ||--o{ activation_requests  : "dotyczy karty >"
+gift_cards_read   ||--o| card_assignments     : "jest przypisana >"
+
+@enduml

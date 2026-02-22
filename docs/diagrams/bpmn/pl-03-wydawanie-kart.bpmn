@@ -1,0 +1,177 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+                  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+                  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+                  id="Defs_PL03" targetNamespace="https://giftcard.local/bpmn/pl03">
+
+  <bpmn:message id="Msg03_IssueData"   name="Dane zlecenia wydania kart"/>
+  <bpmn:message id="Msg03_IssueResult" name="Potwierdzenie wydania kart"/>
+
+  <bpmn:collaboration id="Collab_PL03">
+    <bpmn:participant id="P03_Admin"  name="Administrator" processRef="Proc03_Admin"/>
+    <bpmn:participant id="P03_System" name="System Kart Podarunkowych" processRef="Proc03_System"/>
+
+    <bpmn:messageFlow id="MF03_01" sourceRef="T03A_Submit"    targetRef="S03S_Start"      name="Zlecenie wydania kart"/>
+    <bpmn:messageFlow id="MF03_02" sourceRef="T03S_Notify"    targetRef="E03A_WaitResult" name="Potwierdzenie"/>
+  </bpmn:collaboration>
+
+  <!-- ═══ ADMINISTRATOR ═══ -->
+  <bpmn:process id="Proc03_Admin" isExecutable="false">
+
+    <bpmn:startEvent id="S03A_Start" name="Otwiera formularz&#10;wydawania kart">
+      <bpmn:outgoing>F03A_01</bpmn:outgoing>
+    </bpmn:startEvent>
+
+    <bpmn:userTask id="T03A_FillForm" name="Wybiera najemcę,&#10;walutę i pozycje:&#10;ilość × kwota nominalna">
+      <bpmn:incoming>F03A_01</bpmn:incoming>
+      <bpmn:outgoing>F03A_02</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <bpmn:userTask id="T03A_Submit" name="Zatwierdza zlecenie&#10;wydania kart">
+      <bpmn:incoming>F03A_02</bpmn:incoming>
+      <bpmn:outgoing>F03A_03</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <bpmn:intermediateCatchEvent id="E03A_WaitResult" name="Otrzymuje potwierdzenie&#10;z liczbą kart i fakturą">
+      <bpmn:incoming>F03A_03</bpmn:incoming>
+      <bpmn:outgoing>F03A_04</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="MED03A_Res" messageRef="Msg03_IssueResult"/>
+    </bpmn:intermediateCatchEvent>
+
+    <bpmn:endEvent id="E03A_End" name="Karty wydane&#10;i gotowe do użycia">
+      <bpmn:incoming>F03A_04</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:sequenceFlow id="F03A_01" sourceRef="S03A_Start"      targetRef="T03A_FillForm"/>
+    <bpmn:sequenceFlow id="F03A_02" sourceRef="T03A_FillForm"    targetRef="T03A_Submit"/>
+    <bpmn:sequenceFlow id="F03A_03" sourceRef="T03A_Submit"      targetRef="E03A_WaitResult"/>
+    <bpmn:sequenceFlow id="F03A_04" sourceRef="E03A_WaitResult"  targetRef="E03A_End"/>
+  </bpmn:process>
+
+  <!-- ═══ SYSTEM KART PODARUNKOWYCH ═══ -->
+  <bpmn:process id="Proc03_System" isExecutable="false">
+
+    <bpmn:startEvent id="S03S_Start" name="Zlecenie wydania&#10;kart odebrane">
+      <bpmn:outgoing>F03S_01</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="MED03S_Start" messageRef="Msg03_IssueData"/>
+    </bpmn:startEvent>
+
+    <bpmn:serviceTask id="T03S_Validate" name="Sprawdza poprawność&#10;zlecenia: aktywny najemca,&#10;niepuste pozycje, kwoty">
+      <bpmn:incoming>F03S_01</bpmn:incoming>
+      <bpmn:outgoing>F03S_02</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:exclusiveGateway id="GW03S_Valid" name="Zlecenie&#10;poprawne?">
+      <bpmn:incoming>F03S_02</bpmn:incoming>
+      <bpmn:outgoing>F03S_Err</bpmn:outgoing>
+      <bpmn:outgoing>F03S_OK</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:endEvent id="E03S_ErrEnd" name="Błąd – komunikat&#10;do administratora">
+      <bpmn:incoming>F03S_Err</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <!-- Rozgałęzienie równoległe: tworzenie kart + generowanie faktury -->
+    <bpmn:parallelGateway id="GW03S_Fork" name="">
+      <bpmn:incoming>F03S_OK</bpmn:incoming>
+      <bpmn:outgoing>F03S_Cards</bpmn:outgoing>
+      <bpmn:outgoing>F03S_Invoice</bpmn:outgoing>
+    </bpmn:parallelGateway>
+
+    <bpmn:serviceTask id="T03S_CreateCards" name="Tworzy karty podarunkowe&#10;dla każdej pozycji zlecenia">
+      <bpmn:incoming>F03S_Cards</bpmn:incoming>
+      <bpmn:outgoing>F03S_CardsOK</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:serviceTask id="T03S_GenInvoice" name="Generuje fakturę PDF&#10;dla zlecenia">
+      <bpmn:incoming>F03S_Invoice</bpmn:incoming>
+      <bpmn:outgoing>F03S_InvOK</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <!-- Synchronizacja obu ścieżek -->
+    <bpmn:parallelGateway id="GW03S_Join" name="">
+      <bpmn:incoming>F03S_CardsOK</bpmn:incoming>
+      <bpmn:incoming>F03S_InvOK</bpmn:incoming>
+      <bpmn:outgoing>F03S_03</bpmn:outgoing>
+    </bpmn:parallelGateway>
+
+    <bpmn:serviceTask id="T03S_Notify" name="Wysyła potwierdzenie&#10;do administratora">
+      <bpmn:incoming>F03S_03</bpmn:incoming>
+      <bpmn:outgoing>F03S_04</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:endEvent id="E03S_End" name="Wydanie kart&#10;zakończone">
+      <bpmn:incoming>F03S_04</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:sequenceFlow id="F03S_01"      sourceRef="S03S_Start"       targetRef="T03S_Validate"/>
+    <bpmn:sequenceFlow id="F03S_02"      sourceRef="T03S_Validate"     targetRef="GW03S_Valid"/>
+    <bpmn:sequenceFlow id="F03S_Err"     name="Nie" sourceRef="GW03S_Valid" targetRef="E03S_ErrEnd"/>
+    <bpmn:sequenceFlow id="F03S_OK"      name="Tak" sourceRef="GW03S_Valid" targetRef="GW03S_Fork"/>
+    <bpmn:sequenceFlow id="F03S_Cards"   sourceRef="GW03S_Fork"        targetRef="T03S_CreateCards"/>
+    <bpmn:sequenceFlow id="F03S_Invoice" sourceRef="GW03S_Fork"        targetRef="T03S_GenInvoice"/>
+    <bpmn:sequenceFlow id="F03S_CardsOK" sourceRef="T03S_CreateCards"  targetRef="GW03S_Join"/>
+    <bpmn:sequenceFlow id="F03S_InvOK"   sourceRef="T03S_GenInvoice"   targetRef="GW03S_Join"/>
+    <bpmn:sequenceFlow id="F03S_03"      sourceRef="GW03S_Join"        targetRef="T03S_Notify"/>
+    <bpmn:sequenceFlow id="F03S_04"      sourceRef="T03S_Notify"       targetRef="E03S_End"/>
+  </bpmn:process>
+
+  <!-- ═══ DIAGRAM INTERCHANGE ═══ -->
+  <bpmndi:BPMNDiagram id="BPMNDiag_PL03">
+    <bpmndi:BPMNPlane id="BPMNPlane_PL03" bpmnElement="Collab_PL03">
+
+      <!-- Pule -->
+      <bpmndi:BPMNShape id="SH_P03_Admin"  bpmnElement="P03_Admin"  isHorizontal="true">
+        <dc:Bounds x="100" y="20"  width="1200" height="160"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="SH_P03_System" bpmnElement="P03_System" isHorizontal="true">
+        <dc:Bounds x="100" y="200" width="1200" height="300"/>
+      </bpmndi:BPMNShape>
+
+      <!-- Administrator (oś y=100) -->
+      <bpmndi:BPMNShape id="SH_S03A_Start"  bpmnElement="S03A_Start">      <dc:Bounds x="162" y="82"  width="36"  height="36"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="SH_T03A_Fill"   bpmnElement="T03A_FillForm">   <dc:Bounds x="248" y="60"  width="150" height="80"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="SH_T03A_Sub"    bpmnElement="T03A_Submit">     <dc:Bounds x="448" y="60"  width="130" height="80"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="SH_E03A_Wait"   bpmnElement="E03A_WaitResult"> <dc:Bounds x="628" y="82"  width="36"  height="36"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="SH_E03A_End"    bpmnElement="E03A_End">        <dc:Bounds x="714" y="82"  width="36"  height="36"/></bpmndi:BPMNShape>
+
+      <bpmndi:BPMNEdge id="E_F03A_01" bpmnElement="F03A_01"><di:waypoint x="198" y="100"/><di:waypoint x="248" y="100"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E_F03A_02" bpmnElement="F03A_02"><di:waypoint x="398" y="100"/><di:waypoint x="448" y="100"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E_F03A_03" bpmnElement="F03A_03"><di:waypoint x="578" y="100"/><di:waypoint x="628" y="100"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E_F03A_04" bpmnElement="F03A_04"><di:waypoint x="664" y="100"/><di:waypoint x="714" y="100"/></bpmndi:BPMNEdge>
+
+      <!-- System (oś główna y=300, górna gałąź y=270, dolna gałąź y=370) -->
+      <bpmndi:BPMNShape id="SH_S03S_Start"   bpmnElement="S03S_Start">         <dc:Bounds x="162" y="282" width="36"  height="36"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="SH_T03S_Val"     bpmnElement="T03S_Validate">      <dc:Bounds x="248" y="260" width="150" height="80"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="SH_GW03S_Valid"  bpmnElement="GW03S_Valid" isMarkerVisible="true"><dc:Bounds x="448" y="275" width="50"  height="50"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="SH_E03S_ErrEnd"  bpmnElement="E03S_ErrEnd">        <dc:Bounds x="448" y="380" width="36"  height="36"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="SH_GW03S_Fork"   bpmnElement="GW03S_Fork">         <dc:Bounds x="548" y="275" width="50"  height="50"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="SH_T03S_Cards"   bpmnElement="T03S_CreateCards">   <dc:Bounds x="648" y="240" width="160" height="80"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="SH_T03S_Invoice" bpmnElement="T03S_GenInvoice">    <dc:Bounds x="648" y="340" width="160" height="80"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="SH_GW03S_Join"   bpmnElement="GW03S_Join">         <dc:Bounds x="858" y="275" width="50"  height="50"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="SH_T03S_Notify"  bpmnElement="T03S_Notify">        <dc:Bounds x="958" y="260" width="150" height="80"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="SH_E03S_End"     bpmnElement="E03S_End">           <dc:Bounds x="1158" y="282" width="36"  height="36"/></bpmndi:BPMNShape>
+
+      <bpmndi:BPMNEdge id="E_F03S_01"      bpmnElement="F03S_01">      <di:waypoint x="198" y="300"/><di:waypoint x="248" y="300"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E_F03S_02"      bpmnElement="F03S_02">      <di:waypoint x="398" y="300"/><di:waypoint x="448" y="300"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E_F03S_Err"     bpmnElement="F03S_Err">     <di:waypoint x="473" y="325"/><di:waypoint x="473" y="380"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E_F03S_OK"      bpmnElement="F03S_OK">      <di:waypoint x="498" y="300"/><di:waypoint x="548" y="300"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E_F03S_Cards"   bpmnElement="F03S_Cards">   <di:waypoint x="573" y="275"/><di:waypoint x="573" y="280"/><di:waypoint x="648" y="280"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E_F03S_Invoice" bpmnElement="F03S_Invoice"> <di:waypoint x="573" y="325"/><di:waypoint x="573" y="380"/><di:waypoint x="648" y="380"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E_F03S_CardsOK" bpmnElement="F03S_CardsOK"> <di:waypoint x="808" y="280"/><di:waypoint x="883" y="280"/><di:waypoint x="883" y="275"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E_F03S_InvOK"   bpmnElement="F03S_InvOK">   <di:waypoint x="808" y="380"/><di:waypoint x="883" y="380"/><di:waypoint x="883" y="325"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E_F03S_03"      bpmnElement="F03S_03">      <di:waypoint x="908" y="300"/><di:waypoint x="958" y="300"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E_F03S_04"      bpmnElement="F03S_04">      <di:waypoint x="1108" y="300"/><di:waypoint x="1158" y="300"/></bpmndi:BPMNEdge>
+
+      <!-- Przepływy wiadomości -->
+      <bpmndi:BPMNEdge id="E_MF03_01" bpmnElement="MF03_01">
+        <di:waypoint x="513" y="140"/><di:waypoint x="513" y="200"/><di:waypoint x="180" y="200"/><di:waypoint x="180" y="282"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E_MF03_02" bpmnElement="MF03_02">
+        <di:waypoint x="1033" y="260"/><di:waypoint x="1033" y="200"/><di:waypoint x="646" y="200"/><di:waypoint x="646" y="118"/>
+      </bpmndi:BPMNEdge>
+
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

@@ -1,0 +1,195 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" id="Defs_BPMN_02" targetNamespace="https://giftcard.local/bpmn" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI">
+  <bpmn:process id="Process_BPMN_02_CustomerActivationFlow" name="Customer Gift Card Activation Flow" isExecutable="true">
+    <bpmn:laneSet id="LaneSet_02">
+      <bpmn:lane id="Lane_EndUser" name="End User">
+        <bpmn:flowNodeRef>Start_OpenActivationForm</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_EnterEmailCardPin</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_EnterVerificationCode</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_ClickAssignCard</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_ActivationUI" name="Activation Controller">
+        <bpmn:flowNodeRef>Task_FindCardByNumber</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_CardAndPinValid</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_ReturnActivationError</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_CreateActivationRequest</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_VerifyCodeAndStatus</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_CodeValid</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_MarkVerified</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_DispatchActivateCommand</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_CreateCardAssignment</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_OptionalCallback</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_RedirectToReturnUrl</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_Mailer" name="Mailer">
+        <bpmn:flowNodeRef>Task_SendVerificationEmail</bpmn:flowNodeRef>
+      </bpmn:lane>
+    </bpmn:laneSet>
+    <bpmn:startEvent id="Start_OpenActivationForm" name="User opens /activate"/>
+    <bpmn:task id="Task_EnterEmailCardPin" name="Submit email, card number and PIN"/>
+    <bpmn:task id="Task_FindCardByNumber" name="Find card in read model"/>
+    <bpmn:exclusiveGateway id="Gateway_CardAndPinValid" name="Card, PIN and status valid?"/>
+    <bpmn:task id="Task_ReturnActivationError" name="Show validation error page"/>
+    <bpmn:task id="Task_CreateActivationRequest" name="Create ActivationRequest with 15 min code"/>
+    <bpmn:task id="Task_SendVerificationEmail" name="Send verification code email async"/>
+    <bpmn:task id="Task_EnterVerificationCode" name="Submit verification code"/>
+    <bpmn:task id="Task_VerifyCodeAndStatus" name="Check code and expiration"/>
+    <bpmn:exclusiveGateway id="Gateway_CodeValid" name="Code valid and not expired?"/>
+    <bpmn:task id="Task_MarkVerified" name="Mark request as verified"/>
+    <bpmn:task id="Task_ClickAssignCard" name="Confirm assignment"/>
+    <bpmn:task id="Task_DispatchActivateCommand" name="Dispatch ActivateCommand"/>
+    <bpmn:task id="Task_CreateCardAssignment" name="Persist CardAssignment and complete request"/>
+    <bpmn:task id="Task_OptionalCallback" name="Send callback to external URL (optional)"/>
+    <bpmn:task id="Task_RedirectToReturnUrl" name="Redirect to return URL with status"/>
+    <bpmn:endEvent id="End_ActivationSuccess" name="Card activated and assigned"/>
+    <bpmn:endEvent id="End_ActivationRejected" name="Activation rejected"/>
+    <bpmn:sequenceFlow id="G01" sourceRef="Start_OpenActivationForm" targetRef="Task_EnterEmailCardPin"/>
+    <bpmn:sequenceFlow id="G02" sourceRef="Task_EnterEmailCardPin" targetRef="Task_FindCardByNumber"/>
+    <bpmn:sequenceFlow id="G03" sourceRef="Task_FindCardByNumber" targetRef="Gateway_CardAndPinValid"/>
+    <bpmn:sequenceFlow id="G04" sourceRef="Gateway_CardAndPinValid" targetRef="Task_ReturnActivationError" name="No"/>
+    <bpmn:sequenceFlow id="G05" sourceRef="Task_ReturnActivationError" targetRef="End_ActivationRejected"/>
+    <bpmn:sequenceFlow id="G06" sourceRef="Gateway_CardAndPinValid" targetRef="Task_CreateActivationRequest" name="Yes"/>
+    <bpmn:sequenceFlow id="G07" sourceRef="Task_CreateActivationRequest" targetRef="Task_SendVerificationEmail"/>
+    <bpmn:sequenceFlow id="G08" sourceRef="Task_SendVerificationEmail" targetRef="Task_EnterVerificationCode"/>
+    <bpmn:sequenceFlow id="G09" sourceRef="Task_EnterVerificationCode" targetRef="Task_VerifyCodeAndStatus"/>
+    <bpmn:sequenceFlow id="G10" sourceRef="Task_VerifyCodeAndStatus" targetRef="Gateway_CodeValid"/>
+    <bpmn:sequenceFlow id="G11" sourceRef="Gateway_CodeValid" targetRef="Task_ReturnActivationError" name="No"/>
+    <bpmn:sequenceFlow id="G12" sourceRef="Gateway_CodeValid" targetRef="Task_MarkVerified" name="Yes"/>
+    <bpmn:sequenceFlow id="G13" sourceRef="Task_MarkVerified" targetRef="Task_ClickAssignCard"/>
+    <bpmn:sequenceFlow id="G14" sourceRef="Task_ClickAssignCard" targetRef="Task_DispatchActivateCommand"/>
+    <bpmn:sequenceFlow id="G15" sourceRef="Task_DispatchActivateCommand" targetRef="Task_CreateCardAssignment"/>
+    <bpmn:sequenceFlow id="G16" sourceRef="Task_CreateCardAssignment" targetRef="Task_OptionalCallback"/>
+    <bpmn:sequenceFlow id="G17" sourceRef="Task_OptionalCallback" targetRef="Task_RedirectToReturnUrl"/>
+    <bpmn:sequenceFlow id="G18" sourceRef="Task_RedirectToReturnUrl" targetRef="End_ActivationSuccess"/>
+  </bpmn:process>
+  <bpmndi:BPMNDiagram xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNDiagram_Process_BPMN_02_CustomerActivationFlow">
+    <bpmndi:BPMNPlane id="BPMNPlane_Process_BPMN_02_CustomerActivationFlow" bpmnElement="Process_BPMN_02_CustomerActivationFlow">
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_Start_OpenActivationForm" bpmnElement="Start_OpenActivationForm">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="120" y="220" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_Task_EnterEmailCardPin" bpmnElement="Task_EnterEmailCardPin">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="290" y="220" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_Task_FindCardByNumber" bpmnElement="Task_FindCardByNumber">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="460" y="220" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_Gateway_CardAndPinValid" bpmnElement="Gateway_CardAndPinValid">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="630" y="220" width="50" height="50"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_Task_ReturnActivationError" bpmnElement="Task_ReturnActivationError">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="800" y="220" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_Task_CreateActivationRequest" bpmnElement="Task_CreateActivationRequest">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="970" y="220" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_Task_SendVerificationEmail" bpmnElement="Task_SendVerificationEmail">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="1140" y="220" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_Task_EnterVerificationCode" bpmnElement="Task_EnterVerificationCode">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="1310" y="220" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_Task_VerifyCodeAndStatus" bpmnElement="Task_VerifyCodeAndStatus">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="1480" y="220" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_Gateway_CodeValid" bpmnElement="Gateway_CodeValid">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="1650" y="220" width="50" height="50"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_Task_MarkVerified" bpmnElement="Task_MarkVerified">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="1820" y="220" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_Task_ClickAssignCard" bpmnElement="Task_ClickAssignCard">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="1990" y="220" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_Task_DispatchActivateCommand" bpmnElement="Task_DispatchActivateCommand">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="2160" y="220" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_Task_CreateCardAssignment" bpmnElement="Task_CreateCardAssignment">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="2330" y="220" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_Task_OptionalCallback" bpmnElement="Task_OptionalCallback">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="2500" y="220" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_Task_RedirectToReturnUrl" bpmnElement="Task_RedirectToReturnUrl">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="2670" y="220" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_End_ActivationSuccess" bpmnElement="End_ActivationSuccess">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="2840" y="220" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="BPMNShape_End_ActivationRejected" bpmnElement="End_ActivationRejected">
+        <dc:Bounds xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" x="3010" y="220" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_G01" bpmnElement="G01">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="138" y="238"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="350" y="260"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_G02" bpmnElement="G02">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="350" y="260"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="520" y="260"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_G03" bpmnElement="G03">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="520" y="260"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="655" y="245"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_G04" bpmnElement="G04">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="655" y="245"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="860" y="260"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_G05" bpmnElement="G05">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="860" y="260"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="3028" y="238"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_G06" bpmnElement="G06">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="655" y="245"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="1030" y="260"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_G07" bpmnElement="G07">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="1030" y="260"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="1200" y="260"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_G08" bpmnElement="G08">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="1200" y="260"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="1370" y="260"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_G09" bpmnElement="G09">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="1370" y="260"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="1540" y="260"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_G10" bpmnElement="G10">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="1540" y="260"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="1675" y="245"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_G11" bpmnElement="G11">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="1675" y="245"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="860" y="260"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_G12" bpmnElement="G12">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="1675" y="245"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="1880" y="260"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_G13" bpmnElement="G13">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="1880" y="260"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="2050" y="260"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_G14" bpmnElement="G14">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="2050" y="260"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="2220" y="260"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_G15" bpmnElement="G15">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="2220" y="260"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="2390" y="260"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_G16" bpmnElement="G16">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="2390" y="260"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="2560" y="260"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_G17" bpmnElement="G17">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="2560" y="260"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="2730" y="260"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="BPMNEdge_G18" bpmnElement="G18">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="2730" y="260"/>
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="2858" y="238"/>
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

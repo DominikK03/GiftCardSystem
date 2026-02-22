@@ -1,0 +1,36 @@
+{# Reusable confirmation modal #}
+{# Required variables: modal_id, title, message, action_url, csrf_token_value, button_label, button_class #}
+{# Optional: has_reason (boolean, default false) #}
+<div class="modal fade confirm-modal" id="{{ modal_id }}" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="bi bi-exclamation-triangle-fill text-warning me-2"></i>
+                    {{ title }}
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="POST" action="{{ action_url }}">
+                <input type="hidden" name="_token" value="{{ csrf_token_value }}">
+                <div class="modal-body">
+                    <p class="mb-0">{{ message }}</p>
+                    {% if has_reason|default(false) %}
+                        <div class="mt-3">
+                            <label class="form-label">{{ 'common.reason'|trans({}, 'ui') }}</label>
+                            <textarea name="reason" class="form-control" rows="2" placeholder="{{ 'common.reason_placeholder'|trans({}, 'ui') }}"></textarea>
+                        </div>
+                    {% endif %}
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                        {{ 'common.cancel_action'|trans({}, 'ui') }}
+                    </button>
+                    <button type="submit" class="{{ button_class|default('btn btn-danger') }}">
+                        {{ button_label }}
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
