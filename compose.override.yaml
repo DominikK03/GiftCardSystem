@@ -35,12 +35,16 @@ services:
     environment:
       APP_ENV: "${APP_ENV:-dev}"
       DATABASE_URL: postgresql://${POSTGRES_USER:-app}:${POSTGRES_PASSWORD:-!ChangeMe!}@database:5432/${POSTGRES_DB:-app}?serverVersion=${POSTGRES_VERSION:-16}&charset=${POSTGRES_CHARSET:-utf8}
-      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/%2f
+      RABBITMQ_URL: amqp://${RABBITMQ_DEFAULT_USER:-app}:${RABBITMQ_DEFAULT_PASS:-secret321}@rabbitmq:5672/${RABBITMQ_DEFAULT_VHOST:-app}
+      MESSENGER_TRANSPORT_DSN: amqp://${RABBITMQ_DEFAULT_USER:-app}:${RABBITMQ_DEFAULT_PASS:-secret321}@rabbitmq:5672/${RABBITMQ_DEFAULT_VHOST:-app}/messages
       REDIS_URL: redis://redis:6379
     depends_on:
-      - php
-      - rabbitmq
-      - database
+      php:
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy
+      database:
+        condition: service_started
     restart: unless-stopped
 
   mailhog:
